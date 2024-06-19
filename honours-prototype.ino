@@ -106,7 +106,7 @@ void setup()
     digitalWrite(PIN_CS, LOW);
     SPI.transfer(0b01000001);
     SPI.transfer(0x00);
-    SPI.transfer(0x86);
+    SPI.transfer(0x85);
     digitalWrite(PIN_CS, HIGH);
     SPI.endTransaction();
 
@@ -130,12 +130,13 @@ void setup()
     SPI.transfer(0x07); // Write 8 in a row
     for (int i = 0; i < 8; i++)
     {
-        SPI.transfer(0x05); // 0x01 shorts to ref, 0x05 to internal test, 0x00 for normal
+        SPI.transfer(0x00); // 0x01 shorts to ref, 0x05 to internal test, 0x00 for normal
     }
     digitalWrite(PIN_CS, HIGH);
     SPI.endTransaction();
 
     delayMicroseconds(1000);
+    
 
     // GET ID
     SPI.beginTransaction(SPISettings(SPI_BAUD, SPI_BIT_ORDER, SPI_MODE));
@@ -233,11 +234,11 @@ void loop()
 
             Serial.print(value);
             Serial.print(", ");
-            // Serial.print(arr[0]);
+            // Serial.print(arr[i * 3 + 0]);
             // Serial.print(", ");
-            // Serial.print(arr[1]);
+            // Serial.print(arr[i * 3 + 1]);
             // Serial.print(", ");
-            // Serial.print(arr[2]);
+            // Serial.print(arr[i * 3 + 2]);
             // Serial.print(", ");
         }
 

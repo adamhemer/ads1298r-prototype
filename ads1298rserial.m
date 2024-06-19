@@ -32,8 +32,8 @@ while ishandle(h)
         % Redraw graph every 1000 updates ( 2 seconds at 500sps )
         updatePeriod = updatePeriod - 1;
         if updatePeriod < 0
-            updatePeriod = 100;
-            plot(x, y)
+            updatePeriod = 1000;
+            plot(x, y(:,5))
             %ylim(ylims)
             drawnow
         end
