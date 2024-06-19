@@ -30,6 +30,9 @@
 #define SPI_BIT_ORDER MSBFIRST
 #define SPI_MODE SPI_MODE1
 
+
+#define CHANNELS    4 // For testing with less channels
+
 void setup()
 {
 
@@ -204,8 +207,8 @@ void loop()
         int status1 = SPI.transfer(0);
         int status2 = SPI.transfer(0);
 
-        // Read channel 1
-        for (int i = 0; i < 3; i++)
+        // Read channel 1 - 4
+        for (int i = 0; i < 3 * CHANNELS; i++)
         {
             arr[i] = SPI.transfer(0);
         }
@@ -214,29 +217,24 @@ void loop()
         digitalWrite(PIN_CS, HIGH);
         SPI.endTransaction();
 
-        // Serial.print(status0);
-        // Serial.print(" | ");
-        // Serial.print(status1);
-        // Serial.print(" | ");
-        // Serial.print(status2);
-        // Serial.print(" | ");
+        for (int i = 0; i < CHANNELS; i++) {
+            // Calculate sign extension
+            int32_t extension = arr[i * 3 + 0] & 0x80 ? 0xFF : 0x00;
 
-        // Calculate sign extension
-        int32_t extension = arr[0] & 0x80 ? 0xFF : 0x00;
+            // Calculate value
+            int32_t value = (int32_t)arr[i * 3 + 2] | ((int32_t)arr[i * 3 + 1] << 8) | ((int32_t)arr[i * 3 + 0] << 16) | ((int32_t)extension << 24);
 
-        // Calculate value
-        int32_t value = (int32_t)arr[2] | ((int32_t)arr[1] << 8) | ((int32_t)arr[0] << 16) | ((int32_t)extension << 24);
+            // double voltage = value * 74.056 / 1000000.0;
 
-        // double voltage = value * 74.056 / 1000000.0;
-
-        Serial.print(value);
-        Serial.print(", ");
-        Serial.print(arr[0]);
-        Serial.print(", ");
-        Serial.print(arr[1]);
-        Serial.print(", ");
-        Serial.print(arr[2]);
-        Serial.print(", ");
+            Serial.print(value);
+            Serial.print(", ");
+            Serial.print(arr[0]);
+            Serial.print(", ");
+            Serial.print(arr[1]);
+            Serial.print(", ");
+            Serial.print(arr[2]);
+            Serial.print(", ");
+        }
 
         Serial.println();
     }
