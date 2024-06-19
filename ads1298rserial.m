@@ -3,7 +3,7 @@ serial = serialport("COM7", 115200);
 received = 0;
 
 x = 1:1:2000;
-y = zeros(2000, 16);
+y = zeros(2000, 32);
 
 h = figure;
 
@@ -21,7 +21,7 @@ while ishandle(h)
         % Remove \n
         data(end) = [];
         % Check correct amount of values present
-        if length(data) == 16
+        if length(data) == 32
             received = received + 1;
             y = circshift(y, 1);
             y(1,:) = data';
@@ -30,8 +30,8 @@ while ishandle(h)
         % Redraw graph every 1000 updates ( 2 seconds at 500sps )
         updatePeriod = updatePeriod - 1;
         if updatePeriod < 0
-            updatePeriod = 1000;
-            plot(x, y(:,[1 5 9 13]))
+            updatePeriod = 100;
+            plot(x, y(:,[1 5 9 13 17 21 25 29]))
             %ylim(ylims)
             drawnow
         end
