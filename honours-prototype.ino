@@ -109,7 +109,7 @@ void setup()
     digitalWrite(PIN_CS, LOW);
     SPI.transfer(0b01000010);
     SPI.transfer(0x00);
-    SPI.transfer(0x00);
+    SPI.transfer(0x10);
     digitalWrite(PIN_CS, HIGH);
     SPI.endTransaction();
 
@@ -122,7 +122,7 @@ void setup()
     SPI.transfer(0x07); // Write 8 in a row
     for (int i = 0; i < 8; i++)
     {
-        SPI.transfer(0x01);
+        SPI.transfer(0x05); // 0x01 shorts to ref, 0x05 to internal test, 0x00 for normal
     }
     digitalWrite(PIN_CS, HIGH);
     SPI.endTransaction();
