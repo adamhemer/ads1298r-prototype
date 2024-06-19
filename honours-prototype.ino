@@ -31,7 +31,7 @@
 #define SPI_MODE SPI_MODE1
 
 
-#define CHANNELS    8 // For testing with less channels
+#define CHANNELS    4 // For testing with less channels
 
 void setup()
 {
@@ -228,12 +228,12 @@ void loop()
 
             Serial.print(value);
             Serial.print(", ");
-            Serial.print(arr[0]);
-            Serial.print(", ");
-            Serial.print(arr[1]);
-            Serial.print(", ");
-            Serial.print(arr[2]);
-            Serial.print(", ");
+            // Serial.print(arr[0]);
+            // Serial.print(", ");
+            // Serial.print(arr[1]);
+            // Serial.print(", ");
+            // Serial.print(arr[2]);
+            // Serial.print(", ");
         }
 
         Serial.println();
