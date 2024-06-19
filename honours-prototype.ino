@@ -137,6 +137,9 @@ void setup()
 
     delayMicroseconds(1000);
     
+    // WREG RLD_SENSP
+
+
 
     // GET ID
     SPI.beginTransaction(SPISettings(SPI_BAUD, SPI_BIT_ORDER, SPI_MODE));
