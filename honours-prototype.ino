@@ -30,6 +30,9 @@
 #define SPI_BIT_ORDER MSBFIRST
 #define SPI_MODE SPI_MODE1
 
+// Minimum SPI clock = tSCLK < (tDR – 4tCLK) / (NBITS × NCHANNELS + 24) = (1/500 - 4 x 50x10^-9) / (8 x 24 + 24) = 108108 Hz
+// Thus the SPI clock must be at minimum 110kHz to retrieve all the data between DRDY pulses
+
 
 #define CHANNELS    4 // For testing with less channels
 
@@ -37,7 +40,7 @@ void setup()
 {
 
     // Start serial to PC
-    Serial.begin(115200);
+    Serial.begin(2000000);
     Serial.println("Starting sequence...");
 
     SPI.begin(18, 19, 23);
@@ -147,13 +150,13 @@ void setup()
     delay(1);
 
     // RDATAC
-    // SPI.beginTransaction(SPISettings(SPI_BAUD, SPI_BIT_ORDER, SPI_MODE));
-    // digitalWrite(PIN_CS, LOW);
-    // delayMicroseconds(1);
-    // SPI.transfer(RDATAC);
-    // delayMicroseconds(1);
-    // digitalWrite(PIN_CS, HIGH);
-    // SPI.endTransaction();
+    SPI.beginTransaction(SPISettings(SPI_BAUD, SPI_BIT_ORDER, SPI_MODE));
+    digitalWrite(PIN_CS, LOW);
+    delayMicroseconds(1);
+    SPI.transfer(RDATAC);
+    delayMicroseconds(1);
+    digitalWrite(PIN_CS, HIGH);
+    SPI.endTransaction();
 
     delay(100);
 
@@ -199,7 +202,7 @@ void loop()
         delayMicroseconds(1);
 
         // Send RDATA to manually read
-        SPI.transfer(RDATA);
+        // SPI.transfer(RDATA);
 
 
         // Read status bytes

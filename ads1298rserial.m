@@ -1,4 +1,4 @@
-serial = serialport("COM7", 115200);
+serial = serialport("COM7", 2000000);
 
 received = 0;
 
