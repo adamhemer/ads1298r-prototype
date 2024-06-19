@@ -1,0 +1,8 @@
+{
+    "files.associations": {
+        "new": "cpp",
+        "*.tcc": "cpp",
+        "*.tpp": "cpp"
+    },
+    "C_Cpp.default.compilerPath": "C:\\Users\\adamh\\AppData\\Local\\Arduino15\\packages\\Flinders\\tools\\pic32-tools\\1.43-pic32gcc\\bin\\pic32-g++.exe"
+}
