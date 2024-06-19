@@ -33,14 +33,16 @@
 // Minimum SPI clock = tSCLK < (tDR – 4tCLK) / (NBITS × NCHANNELS + 24) = (1/500 - 4 x 50x10^-9) / (8 x 24 + 24) = 108108 Hz
 // Thus the SPI clock must be at minimum 110kHz to retrieve all the data between DRDY pulses
 
+#define SERIAL_BAUD 1000000
 
-#define CHANNELS    4 // For testing with less channels
+
+#define CHANNELS    8 // For testing with less channels
 
 void setup()
 {
 
     // Start serial to PC
-    Serial.begin(2000000);
+    Serial.begin(SERIAL_BAUD);
     Serial.println("Starting sequence...");
 
     SPI.begin(18, 19, 23);

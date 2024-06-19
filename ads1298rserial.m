@@ -1,8 +1,8 @@
-serial = serialport("COM7", 2000000);
+serial = serialport("COM7", 1000000);
 
 received = 0;
 
-channels = 4;
+channels = 8;
 
 x = 1:1:2000;
 y = zeros(2000, channels);
