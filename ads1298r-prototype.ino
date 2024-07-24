@@ -4,6 +4,7 @@
 #include "WiFi.h"
 #include "WiFiMulti.h"
 #include "esp_wpa2.h" //wpa2 library for connections to Enterprise networks
+#include "env.h" // WiFi credentials
 
 
 #define PIN_PWDN D2
@@ -42,15 +43,15 @@
 #define CHANNELS    8 // For testing with less channels
 
 
-WiFiMulti WiFiMulti;
+// WiFiMulti WiFiMulti;
 WiFiClient client;
 
 
-#define EAP_ANONYMOUS_IDENTITY "anonymous@flinders.edu.au" //anonymous@example.com, or you can use also nickname@example.com
-#define EAP_IDENTITY "heme0012@flinders.edu.au" //nickname@example.com, at some organizations should work nickname only without realm, but it is not recommended
-#define EAP_PASSWORD "" //password for eduroam account
-#define EAP_USERNAME "heme0012" // the Username is the same as the Identity in most eduroam networks.
-const char* ssid = "eduroam"; // eduroam SSID
+// #define EAP_ANONYMOUS_IDENTITY "anonymous@flinders.edu.au" //anonymous@example.com, or you can use also nickname@example.com
+// #define EAP_IDENTITY "heme0012@flinders.edu.au" //nickname@example.com, at some organizations should work nickname only without realm, but it is not recommended
+// #define EAP_PASSWORD "" //password for eduroam account
+// #define EAP_USERNAME "heme0012" // the Username is the same as the Identity in most eduroam networks.
+// const char* ssid = "eduroam"; // eduroam SSID
 
 
 
@@ -244,15 +245,12 @@ void setup()
 
     // -------- Connect to Wifi ---------
     
-    // WiFiMulti.addAP("Telstra9BD817", "97n89kdsht"); // Home
-    // WiFiMulti.addAP("Galaxy A33 5GD849", "oilyloki"); // Hotspot
-    // // WiFiMulti.addAP("TelstraD7E509", "jfm2xmt7hs"); // Emily's
 
     // Serial.print("Waiting for WiFi... ");
 
     // while(WiFiMulti.run() != WL_CONNECTED) {
     //     Serial.print(".");
-    //     delay(500);
+    //     delay(500)
     // }
 
     // Serial.println("");
