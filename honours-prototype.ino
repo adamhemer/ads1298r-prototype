@@ -1,6 +1,10 @@
 
 #include "Arduino.h"
 #include "SPI.h"
+#include "WiFi.h"
+#include "WiFiMulti.h"
+#include "esp_wpa2.h" //wpa2 library for connections to Enterprise networks
+
 
 #define PIN_PWDN D2
 #define PIN_RST D3
@@ -35,8 +39,20 @@
 
 #define SERIAL_BAUD 1000000
 
-
 #define CHANNELS    8 // For testing with less channels
+
+
+WiFiMulti WiFiMulti;
+WiFiClient client;
+
+
+#define EAP_ANONYMOUS_IDENTITY "anonymous@flinders.edu.au" //anonymous@example.com, or you can use also nickname@example.com
+#define EAP_IDENTITY "heme0012@flinders.edu.au" //nickname@example.com, at some organizations should work nickname only without realm, but it is not recommended
+#define EAP_PASSWORD "" //password for eduroam account
+#define EAP_USERNAME "heme0012" // the Username is the same as the Identity in most eduroam networks.
+const char* ssid = "eduroam"; // eduroam SSID
+
+
 
 void setup()
 {
@@ -95,7 +111,7 @@ void setup()
     digitalWrite(PIN_CS, LOW);
     SPI.transfer(0b01000011);
     SPI.transfer(0x00);
-    SPI.transfer(0xC0);
+    SPI.transfer(0xCC); // C0 internal reference, 4C rld stuff, CC for both
     digitalWrite(PIN_CS, HIGH);
     SPI.endTransaction();
 
@@ -106,7 +122,7 @@ void setup()
     digitalWrite(PIN_CS, LOW);
     SPI.transfer(0b01000001);
     SPI.transfer(0x00);
-    SPI.transfer(0x85);
+    SPI.transfer(0x86);
     digitalWrite(PIN_CS, HIGH);
     SPI.endTransaction();
 
@@ -130,15 +146,38 @@ void setup()
     SPI.transfer(0x07); // Write 8 in a row
     for (int i = 0; i < 8; i++)
     {
-        SPI.transfer(0x00); // 0x01 shorts to ref, 0x05 to internal test, 0x00 for normal
+        if (i == 1) {
+            SPI.transfer(0x00); // 0x01 shorts to ref, 0x05 to internal test, 0x00 for normal
+        } else {
+            SPI.transfer(0x05); // 0x01 shorts to ref, 0x05 to internal test, 0x00 for normal
+        }
     }
     digitalWrite(PIN_CS, HIGH);
     SPI.endTransaction();
 
     delayMicroseconds(1000);
     
-    // WREG RLD_SENSP
+    // WREG RLD_SENSP 0x01
+    SPI.beginTransaction(SPISettings(SPI_BAUD, SPI_BIT_ORDER, SPI_MODE));
+    digitalWrite(PIN_CS, LOW);
+    SPI.transfer(0x4D);
+    SPI.transfer(0x00);
+    SPI.transfer(0x02);
+    digitalWrite(PIN_CS, HIGH);
+    SPI.endTransaction();
 
+    delayMicroseconds(1000);
+
+    // WREG RLD_SENSN 0x01
+    SPI.beginTransaction(SPISettings(SPI_BAUD, SPI_BIT_ORDER, SPI_MODE));
+    digitalWrite(PIN_CS, LOW);
+    SPI.transfer(0x4E);
+    SPI.transfer(0x00);
+    SPI.transfer(0x02);
+    digitalWrite(PIN_CS, HIGH);
+    SPI.endTransaction();
+
+    delayMicroseconds(1000);
 
 
     // GET ID
@@ -192,6 +231,74 @@ void setup()
     // SPI.endTransaction();
 
     // Serial.println(id);
+
+
+
+    // ======== Wifi setup ========
+    pinMode(D9, OUTPUT);
+    digitalWrite(D9, LOW);
+    
+    Serial.begin(115200);
+    delay(10);
+
+
+    // -------- Connect to Wifi ---------
+    
+    // WiFiMulti.addAP("Telstra9BD817", "97n89kdsht"); // Home
+    // WiFiMulti.addAP("Galaxy A33 5GD849", "oilyloki"); // Hotspot
+    // // WiFiMulti.addAP("TelstraD7E509", "jfm2xmt7hs"); // Emily's
+
+    // Serial.print("Waiting for WiFi... ");
+
+    // while(WiFiMulti.run() != WL_CONNECTED) {
+    //     Serial.print(".");
+    //     delay(500);
+    // }
+
+    // Serial.println("");
+    // Serial.println("WiFi connected");
+    // Serial.println("IP address: ");
+    // Serial.println(WiFi.localIP());
+
+    // digitalWrite(D9, HIGH);
+
+    // delay(500);
+
+    Serial.print(F("Connecting to network: "));
+    Serial.println(ssid);
+    WiFi.disconnect(true);  //disconnect from WiFi to set new WiFi connection
+
+    WiFi.begin(ssid, WPA2_AUTH_PEAP, EAP_IDENTITY, EAP_USERNAME, EAP_PASSWORD); 
+
+
+    while (WiFi.status() != WL_CONNECTED) {
+        delay(500);
+        Serial.print(F("."));
+    }
+    Serial.println("");
+    Serial.println(F("WiFi is connected!"));
+    Serial.println(F("IP address set: "));
+    Serial.println(WiFi.localIP()); 
+
+
+    // -------- Connect to Server ---------
+
+    // const uint16_t port = 41000;
+    const uint16_t port = 4500;
+    // const char * host = "192.168.0.101"; // Home
+    // const char * host = "192.168.121.65"; // Hotspot
+    // const char * host = "192.168.0.45"; // Emily's
+    const char * host = "10.30.7.30"; // eduroam
+
+    Serial.print("Connecting to ");
+    Serial.println(host);
+
+    while (!client.connect(host, port)) {
+        Serial.println("Connection failed.");
+        Serial.println("Waiting 2 seconds before retrying...");
+        delay(2000);
+        // return;
+    }
 }
 
 void loop()
@@ -200,7 +307,8 @@ void loop()
     if (!digitalRead(PIN_DRDY))
     {
         // Store incoming values
-        int arr[24] = {0};
+        int SPI_bytes_read[24] = {0};
+        uint32_t SPI_values_read[8] = {0};
 
         // Start transaction
         SPI.beginTransaction(SPISettings(SPI_BAUD, SPI_BIT_ORDER, SPI_MODE));
@@ -219,7 +327,7 @@ void loop()
         // Read channel 1 - 4
         for (int i = 0; i < 3 * CHANNELS; i++)
         {
-            arr[i] = SPI.transfer(0);
+            SPI_bytes_read[i] = SPI.transfer(0);
         }
 
         // End transaction
@@ -228,15 +336,16 @@ void loop()
 
         for (int i = 0; i < CHANNELS; i++) {
             // Calculate sign extension
-            int32_t extension = arr[i * 3 + 0] & 0x80 ? 0xFF : 0x00;
+            int32_t extension = SPI_bytes_read[i * 3 + 0] & 0x80 ? 0xFF : 0x00;
 
             // Calculate value
-            int32_t value = (int32_t)arr[i * 3 + 2] | ((int32_t)arr[i * 3 + 1] << 8) | ((int32_t)arr[i * 3 + 0] << 16) | ((int32_t)extension << 24);
+            SPI_values_read[i] = (int32_t)SPI_bytes_read[i * 3 + 2] | ((int32_t)SPI_bytes_read[i * 3 + 1] << 8) | ((int32_t)SPI_bytes_read[i * 3 + 0] << 16) | ((int32_t)extension << 24);
 
             // double voltage = value * 74.056 / 1000000.0;
 
-            Serial.print(value);
-            Serial.print(", ");
+            // Serial.print(value);
+            // Serial.print(", ");
+
             // Serial.print(arr[i * 3 + 0]);
             // Serial.print(", ");
             // Serial.print(arr[i * 3 + 1]);
@@ -245,6 +354,7 @@ void loop()
             // Serial.print(", ");
         }
 
-        Serial.println();
+        client.write((const uint8_t *) &SPI_values_read, sizeof(SPI_values_read));
+        // Serial.println();
     }
 }
