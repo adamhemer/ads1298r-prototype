@@ -73,7 +73,6 @@ void setup()
 
 
     // ======== Find Networks ========
-
     WiFi.mode(WIFI_STA);
     WiFi.disconnect();
     delay(100);
@@ -141,10 +140,10 @@ void setup()
 
     // const uint16_t port = 41000;
     const uint16_t port = 4500;
-    const char * host = "192.168.0.101"; // Home
-    // const char * host = "192.168.121.65"; // Hotspot
+    // const char * host = "192.168.0.101"; // Home
+    // const char * host = "192.168.52.65"; // Hotspot
     // const char * host = "192.168.0.45"; // Emily's
-    // const char * host = "10.30.7.30"; // eduroam
+    const char * host = "10.30.6.143"; // eduroam
 
     Serial.print("Connecting to ");
     Serial.println(host);
@@ -159,7 +158,6 @@ void setup()
 
 void loop()
 {
-    // delay(1);
     if (!digitalRead(PIN_DRDY))
     {
         // Store incoming values

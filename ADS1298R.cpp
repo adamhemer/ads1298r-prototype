@@ -7,6 +7,8 @@
 #define SPI_BIT_ORDER MSBFIRST
 #define SPI_MODE SPI_MODE1
 
+#define DEVICE_ID   210
+
 extern SPIClass SPI;
 
 ADS1298R::ADS1298R(int baud, int bitOrder, int mode) {
@@ -65,7 +67,7 @@ void ADS1298R::init() {
     delayMicroseconds(1);
     digitalWrite(PIN_RST, HIGH);
 
-    delayMicroseconds(20); // Wait for reset time (18 clocks ~= 10us)
+    delayMicroseconds(20); // Wait for reset time (18 clocks ~= 10us)               // Maybe increase this time even more??
 
     // SDATAC
     stopDataContinuous();
@@ -79,14 +81,24 @@ void ADS1298R::init() {
     // WREG CONFIG2 0x10
     writeRegister(CONFIG2, 0x10);
 
-    // WREG CHnSET 0x01
-    uint8_t channelSettings[] = { 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05 };
+    // CHnSET
+    // Channel Gain
+    // 0x0_ = 6
+    // 0x1_ = 1
+    // 0x2_ = 2
+    // 0x3_ = 3
+    // 0x4_ = 4
+    // 0x5_ = 8
+    // 0x6_ = 12
+
+    // WREG CHnSET 0x00 - Test Signal 0x_5, Shorted 0x_1, Normal 0x_0.
+    uint8_t channelSettings[] = { 0x05, 0x00, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05 };
     writeRegisters(CH1SET, 8, channelSettings);
     
-    // WREG RLD_SENSP 0x01
+    // WREG RLD_SENSP 0x02 - channel 2
     writeRegister(RLD_SENSP, 0x02);
 
-    // WREG RLD_SENSN 0x01
+    // WREG RLD_SENSN 0x02 - channel 2
     writeRegister(RLD_SENSN, 0x02);
 
 
@@ -94,6 +106,11 @@ void ADS1298R::init() {
     int id = readRegister(0x00);
     Serial.print("Device has ID: ");
     Serial.println(id);
+
+    if (id != DEVICE_ID) {
+        Serial.println("Device boot failed, retrying startup proceedure...");
+        // This should restart the proceedure, maybe use a do-while until the device ID is correct or X attempts fails.
+    }
 
     delay(1);
 
