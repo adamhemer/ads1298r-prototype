@@ -80,7 +80,7 @@ void ADS1298R::init() {
     writeRegister(CONFIG2, 0x10);
 
     // WREG CHnSET 0x01
-    uint8_t channelSettings[] = { 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05 };
+    uint8_t channelSettings[] = { 0x05, 0x00, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05 };
     writeRegisters(CH1SET, 8, channelSettings);
     
     // WREG RLD_SENSP 0x01
@@ -89,9 +89,14 @@ void ADS1298R::init() {
     // WREG RLD_SENSN 0x01
     writeRegister(RLD_SENSN, 0x02);
 
+    // WREG RESP 0b111 011 10 = 0xEE
+    // writeRegister(RESP, 0xEE);
+
+    // WREG CONFIG4 0b000 0 0 0 0 0 // Default, dont actually need to write
+    writeRegister(CONFIG4, 0x00);
 
     // GET ID
-    int id = readRegister(0x00);
+    int id = readRegister(0x00); 
     Serial.print("Device has ID: ");
     Serial.println(id);
 

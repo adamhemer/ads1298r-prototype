@@ -138,18 +138,10 @@ void setup()
 
 
     // -------- Connect to Server ---------
-
-    // const uint16_t port = 41000;
-    const uint16_t port = 4500;
-    const char * host = "192.168.0.101"; // Home
-    // const char * host = "192.168.121.65"; // Hotspot
-    // const char * host = "192.168.0.45"; // Emily's
-    // const char * host = "10.30.7.30"; // eduroam
-
     Serial.print("Connecting to ");
-    Serial.println(host);
+    Serial.println(bestNetwork.host);
 
-    while (!client.connect(host, port)) {
+    while (!client.connect(bestNetwork.host, bestNetwork.port)) {
         Serial.println("Connection failed.");
         Serial.println("Waiting 2 seconds before retrying...");
         delay(2000);

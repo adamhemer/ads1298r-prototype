@@ -1,4 +1,8 @@
 struct WiFiCredentials {
+    // Server
+    char* host;
+    uint16_t port;
+
     // Standard Network
     char* ssid;
     char* password;
@@ -7,5 +11,4 @@ struct WiFiCredentials {
     bool enterprise;
     char* username;
     char* identity;
-
 };
