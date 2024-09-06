@@ -37,6 +37,101 @@ void ADS1298R::stopDataContinuous() {
     delayMicroseconds(1000); // Wait for device to change mode
 };
 
+void ADS1298R::initLoop() {
+    int id;
+    int attempts = 0;
+    const int maxAttempts = 4;
+    do {
+        // SPI.begin(PIN_SCLK, PIN_DOUT, PIN_DIN); // This should work the same as below??
+        SPI.begin(18, 19, 23);
+
+        // ADS1298R Startup Proceedure
+        digitalWrite(PIN_PWDN, LOW);
+        digitalWrite(PIN_RST, LOW);
+        digitalWrite(PIN_START, LOW);
+        digitalWrite(PIN_CS, LOW);
+
+        delay(100); // Oscillator Wakeup
+
+        digitalWrite(PIN_PWDN, HIGH);
+        digitalWrite(PIN_RST, HIGH);
+
+        delay(1000); // Wait for tPOR and VCAP1
+
+        // Send reset pulse // 1 clk ~= 0.5us
+        digitalWrite(PIN_RST, LOW);
+        delayMicroseconds(1);
+        digitalWrite(PIN_RST, HIGH);
+
+        delayMicroseconds(20); // Wait for reset time (18 clocks ~= 10us)               // Maybe increase this time even more??
+
+        // SDATAC
+        stopDataContinuous();
+
+        // WREG CONFIG3 0xC0 - Turn on internal reference
+        writeRegister(CONFIG3, 0xCC);                            // C0 internal reference, 4C rld stuff, CC for both
+
+        // WREG CONFIG1 0x86
+        writeRegister(CONFIG1, 0x86);
+
+        // WREG CONFIG2 0x10
+        writeRegister(CONFIG2, 0x10);
+
+        // CHnSET
+        // Channel Gain
+        // 0x0_ = 6
+        // 0x1_ = 1
+        // 0x2_ = 2
+        // 0x3_ = 3
+        // 0x4_ = 4
+        // 0x5_ = 8
+        // 0x6_ = 12
+
+        // WREG CHnSET 0x00 - Test Signal 0x_5, Shorted 0x_1, Normal 0x_0.
+        uint8_t channelSettings[] = { 0x05, 0x00, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05 };
+        writeRegisters(CH1SET, 8, channelSettings);
+        
+        // WREG RLD_SENSP 0x02 - channel 2
+        writeRegister(RLD_SENSP, 0x02);
+
+        // WREG RLD_SENSN 0x02 - channel 2
+        writeRegister(RLD_SENSN, 0x02);
+
+        // GET ID
+        id = readRegister(0x00);
+        Serial.print("Device has ID: ");
+        Serial.println(id);
+
+        if (id != DEVICE_ID) {
+            SPI.end();
+
+            attempts++;
+            if (attempts >= maxAttempts) {
+                Serial.println("Device boot failed, max attempts exceeded!");
+            } else {
+                Serial.println("Device boot failed, retrying startup proceedure...");
+            }
+            delay(1000);    
+
+            Serial.println("Device boot failed, retrying startup proceedure...");
+            SPI.end();
+            delay(1000);
+        }
+    } while (id != DEVICE_ID);
+
+    delay(1);
+
+    // RDATAC
+    readDataContinuous();
+
+    delay(100);
+
+    // Start conversion
+    digitalWrite(PIN_START, HIGH);
+
+    delay(10);
+}
+
 void ADS1298R::init() {
     
     // SPI.begin(PIN_SCLK, PIN_DOUT, PIN_DIN);
@@ -49,68 +144,8 @@ void ADS1298R::init() {
     pinMode(PIN_CS, OUTPUT);
     pinMode(PIN_DRDY, INPUT);
 
-    // ADS1298R Startup Proceedure
-    digitalWrite(PIN_PWDN, LOW);
-    digitalWrite(PIN_RST, LOW);
-    digitalWrite(PIN_START, LOW);
-    digitalWrite(PIN_CS, LOW);
-
-    delay(100); // Oscillator Wakeup
-
-    digitalWrite(PIN_PWDN, HIGH);
-    digitalWrite(PIN_RST, HIGH);
-
-    delay(1000); // Wait for tPOR and VCAP1
-
-    // Send reset pulse // 1 clk ~= 0.5us
-    digitalWrite(PIN_RST, LOW);
-    delayMicroseconds(1);
-    digitalWrite(PIN_RST, HIGH);
-
-    delayMicroseconds(20); // Wait for reset time (18 clocks ~= 10us)               // Maybe increase this time even more??
-
-    // SDATAC
-    stopDataContinuous();
-
-    // WREG CONFIG3 0xC0 - Turn on internal reference
-    writeRegister(CONFIG3, 0xCC);                            // C0 internal reference, 4C rld stuff, CC for both
-
-    // WREG CONFIG1 0x86
-    writeRegister(CONFIG1, 0x86);
-
-    // WREG CONFIG2 0x10
-    writeRegister(CONFIG2, 0x10);
-
-    // CHnSET
-    // Channel Gain
-    // 0x0_ = 6
-    // 0x1_ = 1
-    // 0x2_ = 2
-    // 0x3_ = 3
-    // 0x4_ = 4
-    // 0x5_ = 8
-    // 0x6_ = 12
-
-    // WREG CHnSET 0x00 - Test Signal 0x_5, Shorted 0x_1, Normal 0x_0.
-    uint8_t channelSettings[] = { 0x05, 0x00, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05 };
-    writeRegisters(CH1SET, 8, channelSettings);
-    
-    // WREG RLD_SENSP 0x02 - channel 2
-    writeRegister(RLD_SENSP, 0x02);
-
-    // WREG RLD_SENSN 0x02 - channel 2
-    writeRegister(RLD_SENSN, 0x02);
-
-
-    // GET ID
-    int id = readRegister(0x00);
-    Serial.print("Device has ID: ");
-    Serial.println(id);
-
-    if (id != DEVICE_ID) {
-        Serial.println("Device boot failed, retrying startup proceedure...");
-        // This should restart the proceedure, maybe use a do-while until the device ID is correct or X attempts fails.
-    }
+    // Setup ADS1298R and loop if the ID is read incorrectly.
+    this->initLoop();
 
     delay(1);
 
