@@ -73,7 +73,6 @@ void setup()
 
 
     // ======== Find Networks ========
-
     WiFi.mode(WIFI_STA);
     WiFi.disconnect();
     delay(100);
@@ -151,7 +150,6 @@ void setup()
 
 void loop()
 {
-    // delay(1);
     if (!digitalRead(PIN_DRDY))
     {
         // Store incoming values

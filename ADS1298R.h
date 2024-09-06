@@ -72,6 +72,7 @@ public:
     ADS1298R(int baud, int bitOrder, int mode);
 
     void init();
+    void initLoop();
 
     void readDataContinuous();
     void stopDataContinuous();
