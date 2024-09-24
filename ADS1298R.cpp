@@ -3,6 +3,9 @@
 #include "Arduino.h"
 #include "SPI.h"
 
+#include <esp_adc_cal.h>
+#include <esp32-hal-adc.h>
+
 #define SPI_BAUD 2000000
 #define SPI_BIT_ORDER MSBFIRST
 #define SPI_MODE SPI_MODE1
@@ -42,8 +45,8 @@ void ADS1298R::initLoop() {
     int attempts = 0;
     const int maxAttempts = 4;
     do {
-        // SPI.begin(PIN_SCLK, PIN_DOUT, PIN_DIN); // This should work the same as below??
-        SPI.begin(18, 19, 23);
+        SPI.begin(PIN_SCLK, PIN_DOUT, PIN_DIN); // This should work the same as below??
+        // SPI.begin(18, 19, 23);
 
         // ADS1298R Startup Proceedure
         digitalWrite(PIN_PWDN, LOW);
@@ -51,25 +54,34 @@ void ADS1298R::initLoop() {
         digitalWrite(PIN_START, LOW);
         digitalWrite(PIN_CS, LOW);
 
-        delay(100); // Oscillator Wakeup
+        delay(200); // Oscillator Wakeup
 
         digitalWrite(PIN_PWDN, HIGH);
         digitalWrite(PIN_RST, HIGH);
 
-        delay(1000); // Wait for tPOR and VCAP1
+        delay(500); // Wait for tPOR and VCAP1
+
+        double vcap_voltage = 0;
+        while (vcap_voltage < 1.1) {
+            vcap_voltage = ((double)adc1_get_raw(ADC1_CHANNEL_7) / 4096.0) * 3.3;
+            Serial.print("VCAP1 voltage = ");
+            Serial.println(vcap_voltage);
+            delay(100);
+        }
+        Serial.print("VCAP1 voltage pass.");
 
         // Send reset pulse // 1 clk ~= 0.5us
         digitalWrite(PIN_RST, LOW);
-        delayMicroseconds(1);
+        delayMicroseconds(2);
         digitalWrite(PIN_RST, HIGH);
 
-        delayMicroseconds(20); // Wait for reset time (18 clocks ~= 10us)               // Maybe increase this time even more??
+        delayMicroseconds(50); // Wait for reset time (18 clocks ~= 10us)               // Maybe increase this time even more??
 
         // SDATAC
         stopDataContinuous();
 
-        // WREG CONFIG3 0xC0 - Turn on internal reference
-        writeRegister(CONFIG3, 0xCC);                            // C0 internal reference, 4C rld stuff, CC for both
+        // WREG CONFIG3 0xC0 - Turn on internal reference  0b11001100
+        writeRegister(CONFIG3, 0xC0);//0x0b11001100);                            // C0 internal reference, 4C rld stuff, CC for both
 
         // WREG CONFIG1 0x86
         writeRegister(CONFIG1, 0x86);
@@ -88,14 +100,18 @@ void ADS1298R::initLoop() {
         // 0x6_ = 12
 
         // WREG CHnSET 0x00 - Test Signal 0x_5, Shorted 0x_1, Normal 0x_0.
-        uint8_t channelSettings[] = { 0x05, 0x00, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05 };
+        // uint8_t channelSettings[] = { 0x00, 0x00, 0b00000010, 0x05, 0x05, 0x05, 0x05, 0x05 };
+        uint8_t channelSettings[] = { 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05 };
         writeRegisters(CH1SET, 8, channelSettings);
+
+        // WREG RESP 0b11 1 100 10 0xF2
+        //writeRegister(RESP, 0xF2);
         
         // WREG RLD_SENSP 0x02 - channel 2
-        writeRegister(RLD_SENSP, 0x02);
+        // writeRegister(RLD_SENSP, 0x02);
 
         // WREG RLD_SENSN 0x02 - channel 2
-        writeRegister(RLD_SENSN, 0x02);
+        // writeRegister(RLD_SENSN, 0x02);
 
         // GET ID
         id = readRegister(0x00);

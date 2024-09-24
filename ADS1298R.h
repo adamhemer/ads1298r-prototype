@@ -2,14 +2,14 @@
 #include "Arduino.h"
 #include "stdint.h"
 
-#define PIN_PWDN    D2
-#define PIN_RST     D3
-#define PIN_START   D5
-#define PIN_CS      14
-#define PIN_DRDY    D7
-#define PIN_DOUT    MISO
-#define PIN_DIN     MOSI
-#define PIN_SCLK    SCK
+#define PIN_PWDN    9    //D2
+#define PIN_RST     18    //D3
+#define PIN_START   12    //D5
+#define PIN_CS      13    //14
+#define PIN_DRDY    21    //D7
+#define PIN_DOUT    47    //MISO
+#define PIN_DIN     11    //MOSI
+#define PIN_SCLK    14    //SCK
 
 // System Commands
 #define SPI_WAKEUP  0x02
@@ -77,11 +77,11 @@ public:
     void readDataContinuous();
     void stopDataContinuous();
 
-    void writeRegister(uint8_t register, uint8_t value);
+    void writeRegister(uint8_t reg, uint8_t value);
 
     void writeRegisters(uint8_t start_reg, int num_regs, uint8_t* value);
 
-    uint8_t readRegister(uint8_t register);
+    uint8_t readRegister(uint8_t reg);
 
     uint8_t* readRegisters(uint8_t start_reg, int num_regs);
 
