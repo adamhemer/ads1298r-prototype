@@ -2,6 +2,7 @@
 #include "Arduino.h"
 #include "stdint.h"
 
+// Pin definitions for FireBeetle 2 ESP32E + Breakout Board 
 #define PIN_PWDN    D2
 #define PIN_RST     D3
 #define PIN_START   D5
@@ -23,11 +24,9 @@
 #define SDATAC  0x11
 #define RDATA   0x12
 
-
 // Register Commands
 #define RREG    0b00100000
 #define WREG    0b01000000
-
 
 /// ---- Register Names ----
 // Device Settings (Readonly)
