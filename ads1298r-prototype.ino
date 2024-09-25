@@ -7,14 +7,17 @@
 #include "env.h" // WiFi credentials - not version controlled
 #include "ADS1298R.h"
 
-#define PIN_PWDN D2
-#define PIN_RST D3
-#define PIN_START D5
-#define PIN_CS 14
-#define PIN_DRDY D7
-#define PIN_DOUT MISO
-#define PIN_DIN MOSI
-#define PIN_SCLK SCK
+#include <esp_adc_cal.h>
+#include <esp32-hal-adc.h>
+
+#define PIN_PWDN    9  // D2
+#define PIN_RST     10 // D3
+#define PIN_START   12 // D5
+#define PIN_CS      13 // 14
+#define PIN_DRDY    21 // D7
+#define PIN_DOUT    11 // MISO
+#define PIN_DIN     47 // MOSI
+#define PIN_SCLK    14 // SCK
 
 // System Commands
 #define SPI_WAKEUP 0x02
@@ -42,6 +45,23 @@
 
 #define CHANNELS    8 // For testing with less channels
 
+#define REVISION_2  true
+
+#define ENABLE1     1
+#define ENABLE2     2
+#define REG_EN      38
+#define READ_BAT    39
+#define BAT_ADC     40
+#define CHARGE_EN   41
+#define TERM_OFF    42
+
+#define LED1        4
+#define LED2        5
+#define BUTTON      6
+
+#define VCAP1       8
+
+
 // WiFiMulti WiFiMulti;
 WiFiClient client;
 
@@ -56,6 +76,33 @@ ADS1298R ads1298r(SPI_BAUD, SPI_BIT_ORDER, SPI_MODE);
 void setup()
 {
 
+    if (REVISION_2) {
+        pinMode(ENABLE1, OUTPUT);
+        pinMode(ENABLE2, OUTPUT);
+        pinMode(REG_EN, OUTPUT);
+        pinMode(READ_BAT, OUTPUT);
+        pinMode(CHARGE_EN, OUTPUT);
+        pinMode(TERM_OFF, OUTPUT);
+
+        pinMode(BAT_ADC, INPUT);
+        
+        pinMode(VCAP1, INPUT);
+        analogReadResolution(12);
+        adcAttachPin(VCAP1);
+
+
+        pinMode(LED1, OUTPUT);
+        pinMode(LED2, OUTPUT);
+        pinMode(BUTTON, INPUT);
+
+        digitalWrite(ENABLE1, LOW);
+        digitalWrite(ENABLE2, LOW);
+        digitalWrite(REG_EN, HIGH);
+        digitalWrite(READ_BAT, LOW);
+        digitalWrite(CHARGE_EN, LOW);
+        digitalWrite(TERM_OFF, LOW);
+    }
+
     // ======== Serial setup ========
     Serial.begin(SERIAL_BAUD);
     delay(3000);
@@ -67,8 +114,10 @@ void setup()
 
 
     // ======== Wifi setup ========
-    pinMode(D9, OUTPUT);
-    digitalWrite(D9, LOW);
+    //pinMode(D9, OUTPUT);
+    // digitalWrite(D9, LOW);
+    pinMode(LED1, OUTPUT);
+    digitalWrite(LED1, LOW);
     delay(10);
 
 
@@ -133,22 +182,15 @@ void setup()
     Serial.println(F("WiFi is connected!"));
     Serial.println(F("IP address set: "));
     Serial.println(WiFi.localIP()); 
-    digitalWrite(D9, HIGH);                 // Visual indication that wifi is connected
+    // digitalWrite(D9, HIGH);                 // Visual indication that wifi is connected
+    digitalWrite(LED1, HIGH);
 
 
     // -------- Connect to Server ---------
-
-    // const uint16_t port = 41000;
-    const uint16_t port = 4500;
-    // const char * host = "192.168.0.101"; // Home
-    // const char * host = "192.168.52.65"; // Hotspot
-    // const char * host = "192.168.0.45"; // Emily's
-    const char * host = "10.30.6.143"; // eduroam
-
     Serial.print("Connecting to ");
-    Serial.println(host);
+    Serial.println(bestNetwork.host);
 
-    while (!client.connect(host, port)) {
+    while (!client.connect(bestNetwork.host, bestNetwork.port)) {
         Serial.println("Connection failed.");
         Serial.println("Waiting 2 seconds before retrying...");
         delay(2000);
@@ -196,4 +238,20 @@ void loop()
         client.write((const uint8_t *) &SPI_values_read, sizeof(SPI_values_read));
         // Serial.println();
     }
+
+
+
+    digitalWrite(READ_BAT, HIGH);
+    // delayMicroseconds(100);
+
+
+
+
+    // digitalWrite(READ_BAT, LOW);
+
+    // float mv = analogRead(BAT_ADC);// / 4096.0) * (37.0 / 27.0) * 3.3; // 0 to 4096 for 3.3V, adjust to voltage divider ratio. 
+    // Serial.print(mv);
+    // Serial.print(', ');
+    // float vcap = analogRead(VCAP1);// / 4096.0) * 3.3; // 0 to 4096 for 3.3V
+    // Serial.println(vcap);
 }
