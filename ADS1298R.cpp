@@ -45,8 +45,9 @@ void ADS1298R::initLoop() {
     int attempts = 0;
     const int maxAttempts = 4;
     do {
+        Serial.println("Starting SPI.");
         SPI.begin(PIN_SCLK, PIN_DOUT, PIN_DIN); // This should work the same as below??
-        // SPI.begin(18, 19, 23);
+        //SPI.begin(18, 19, 23);
 
         // ADS1298R Startup Proceedure
         digitalWrite(PIN_PWDN, LOW);
@@ -54,11 +55,13 @@ void ADS1298R::initLoop() {
         digitalWrite(PIN_START, LOW);
         digitalWrite(PIN_CS, LOW);
 
+        Serial.println("Oscillator wakeup.");
         delay(200); // Oscillator Wakeup
 
         digitalWrite(PIN_PWDN, HIGH);
         digitalWrite(PIN_RST, HIGH);
 
+        Serial.println("VCAP1 Settling.");
         delay(500); // Wait for tPOR and VCAP1
 
         double vcap_voltage = 0;
@@ -68,7 +71,7 @@ void ADS1298R::initLoop() {
             Serial.println(vcap_voltage);
             delay(100);
         }
-        Serial.print("VCAP1 voltage pass.");
+        Serial.println("VCAP1 voltage pass.");
 
         // Send reset pulse // 1 clk ~= 0.5us
         digitalWrite(PIN_RST, LOW);
@@ -124,12 +127,12 @@ void ADS1298R::initLoop() {
             attempts++;
             if (attempts >= maxAttempts) {
                 Serial.println("Device boot failed, max attempts exceeded!");
+                ESP.restart();
             } else {
                 Serial.println("Device boot failed, retrying startup proceedure...");
             }
-            delay(1000);    
 
-            Serial.println("Device boot failed, retrying startup proceedure...");
+            // Serial.println("Device boot failed, retrying startup proceedure...");
             SPI.end();
             delay(1000);
         }
@@ -150,8 +153,8 @@ void ADS1298R::initLoop() {
 
 void ADS1298R::init() {
     
-    // SPI.begin(PIN_SCLK, PIN_DOUT, PIN_DIN);
-    SPI.begin(18, 19, 23);
+    SPI.begin(PIN_SCLK, PIN_DOUT, PIN_DIN);
+    //SPI.begin(18, 19, 23);
 
     // Set pinmodes
     pinMode(PIN_PWDN, OUTPUT);

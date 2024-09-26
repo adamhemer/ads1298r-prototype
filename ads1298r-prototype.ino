@@ -51,7 +51,7 @@
 #define ENABLE2     2
 #define REG_EN      38
 #define READ_BAT    39
-#define BAT_ADC     40
+#define BAT_ADC     15 // 40 cant do adc
 #define CHARGE_EN   41
 #define TERM_OFF    42
 
@@ -101,6 +101,9 @@ void setup()
         digitalWrite(READ_BAT, LOW);
         digitalWrite(CHARGE_EN, LOW);
         digitalWrite(TERM_OFF, LOW);
+
+
+
     }
 
     // ======== Serial setup ========
@@ -198,6 +201,8 @@ void setup()
     }
 }
 
+int loopCounter = 0;
+
 void loop()
 {
     if (!digitalRead(PIN_DRDY))
@@ -237,11 +242,31 @@ void loop()
 
         client.write((const uint8_t *) &SPI_values_read, sizeof(SPI_values_read));
         // Serial.println();
+
+        loopCounter++;
+
+        if (loopCounter > 1000) {
+            loopCounter = 0;
+            
+            uint32_t batVoltage = floor(getBatteryVoltage() * 100000.0);
+            uint32_t battery_packet[8] = {1, 2, 3, 4, 5, 6, 7, batVoltage};
+
+            client.write((const uint8_t *) &battery_packet, sizeof(battery_packet));
+
+        }
     }
 
 
 
-    digitalWrite(READ_BAT, HIGH);
+
+
+
+
+
+
+
+
+    // digitalWrite(READ_BAT, HIGH);
     // delayMicroseconds(100);
 
 
@@ -254,4 +279,22 @@ void loop()
     // Serial.print(', ');
     // float vcap = analogRead(VCAP1);// / 4096.0) * 3.3; // 0 to 4096 for 3.3V
     // Serial.println(vcap);
+}
+
+
+double getBatteryVoltage() {
+    digitalWrite(CHARGE_EN, HIGH); // Disable charging
+    digitalWrite(READ_BAT, HIGH); // Enable resistor divider
+
+    delayMicroseconds(100);
+    // delay(10);
+    double voltage = ((double)analogRead(BAT_ADC) / 4096.0) * (37.0 / 27.0) * 3.3; // 0 to 4096 for 3.3V, adjust to voltage divider ratio. 
+    // Serial.println(mv);
+    // Serial1.println(mv);
+    // delay(10);
+
+    digitalWrite(READ_BAT, LOW); // Disable resistor divider
+    digitalWrite(CHARGE_EN, LOW); // Enable charging
+
+    return voltage;
 }
