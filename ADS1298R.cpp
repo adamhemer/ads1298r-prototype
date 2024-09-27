@@ -84,12 +84,16 @@ void ADS1298R::initLoop() {
         stopDataContinuous();
 
         // WREG CONFIG3 0xC0 - Turn on internal reference  0b11001100
-        writeRegister(CONFIG3, 0xC0);//0x0b11001100);                            // C0 internal reference, 4C rld stuff, CC for both
+        delay(10);
+        writeRegister(CONFIG3, 0xCC);//0x0b11001100);                            // C0 internal reference, 4C rld stuff, CC for both
 
         // WREG CONFIG1 0x86
-        writeRegister(CONFIG1, 0x86);
+        delay(10);
+        writeRegister(CONFIG1, 0x86); // 0x86 = 500 in HP
+        //writeRegister(CONFIG1, 0x05); // 500 in LP
 
         // WREG CONFIG2 0x10
+        delay(10);
         writeRegister(CONFIG2, 0x10);
 
         // CHnSET
@@ -104,17 +108,21 @@ void ADS1298R::initLoop() {
 
         // WREG CHnSET 0x00 - Test Signal 0x_5, Shorted 0x_1, Normal 0x_0.
         // uint8_t channelSettings[] = { 0x00, 0x00, 0b00000010, 0x05, 0x05, 0x05, 0x05, 0x05 };
-        uint8_t channelSettings[] = { 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05 };
+        // uint8_t channelSettings[] = { 0x05, 0x00, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05 }; // ECG on Channel 2, Others test signal.
+        uint8_t channelSettings[] = { 0x05, 0x05, 0x05, 0x05, 0x05, 0x00, 0x05, 0x05 }; // All channels test signal.
+        delay(10);
         writeRegisters(CH1SET, 8, channelSettings);
 
         // WREG RESP 0b11 1 100 10 0xF2
         //writeRegister(RESP, 0xF2);
         
         // WREG RLD_SENSP 0x02 - channel 2
-        // writeRegister(RLD_SENSP, 0x02);
+        delay(10);
+        writeRegister(RLD_SENSP, 0x02);
 
         // WREG RLD_SENSN 0x02 - channel 2
-        // writeRegister(RLD_SENSN, 0x02);
+        delay(10);
+        writeRegister(RLD_SENSN, 0x02);
 
         // GET ID
         id = readRegister(0x00);

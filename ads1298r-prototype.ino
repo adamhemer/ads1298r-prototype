@@ -73,6 +73,8 @@ WiFiClient client;
 
 ADS1298R ads1298r(SPI_BAUD, SPI_BIT_ORDER, SPI_MODE);
 
+WiFiCredentials bestNetwork;
+
 void setup()
 {
 
@@ -129,8 +131,6 @@ void setup()
     WiFi.disconnect();
     delay(100);
 
-    WiFiCredentials bestNetwork;
-
     int n = WiFi.scanNetworks();
     Serial.println("scan done");
     if (n == 0) {
@@ -178,8 +178,12 @@ void setup()
 
 
     while (WiFi.status() != WL_CONNECTED) {
-        delay(500);
         Serial.print(F("."));   // Loading bar "...." in serial monitor while connecting
+        delay(250);
+        digitalWrite(LED1, LOW);
+        delay(250);
+        digitalWrite(LED1, HIGH);
+
     }
     Serial.println("");
     Serial.println(F("WiFi is connected!"));
@@ -203,13 +207,24 @@ void setup()
 
 int loopCounter = 0;
 
+// const int packetSize = 4;
+// int packetAccum = 0;
+
+// uint32_t sendBuffer[8 * packetSize] = {0};
+
 void loop()
 {
     if (!digitalRead(PIN_DRDY))
     {
         // Store incoming values
-        int SPI_bytes_read[24] = {0};
-        uint32_t SPI_values_read[8] = {0};
+        // uint8_t SPI_bytes_read[24] = {0};
+        uint8_t SPI_bytes_read[36] = {0};
+        int32_t SPI_values_read[8] = {0};
+
+        SPI_bytes_read[0] = 0;
+        SPI_bytes_read[1] = 7;
+        SPI_bytes_read[2] = 127;
+        SPI_bytes_read[3] = 254;
 
         // Start transaction
         SPI.beginTransaction(SPISettings(SPI_BAUD, SPI_BIT_ORDER, SPI_MODE));
@@ -217,42 +232,72 @@ void loop()
         delayMicroseconds(1);
 
         // Read status bytes
-        int status0 = SPI.transfer(0);
-        int status1 = SPI.transfer(0);
-        int status2 = SPI.transfer(0);
+        uint8_t status0 = SPI.transfer(0);
+        uint8_t status1 = SPI.transfer(0);
+        uint8_t status2 = SPI.transfer(0);
 
         // Read channel 1 - 4
-        for (int i = 0; i < 3 * CHANNELS; i++)
+        // for (int i = 0; i < 3 * CHANNELS; i++)
+        // {
+        //     SPI_bytes_read[i] = SPI.transfer(0);
+        // }
+
+        for (int i = 0; i < 4 * CHANNELS; i++)
         {
-            SPI_bytes_read[i] = SPI.transfer(0);
+            if ((i+1) % 4 == 0)
+                SPI_bytes_read[i+4] = 7;
+            else
+                SPI_bytes_read[i+4] = SPI.transfer(0);
         }
 
         // End transaction
         digitalWrite(PIN_CS, HIGH);
         SPI.endTransaction();
 
-        for (int i = 0; i < CHANNELS; i++) {
-            // Calculate sign extension
-            int32_t extension = SPI_bytes_read[i * 3 + 0] & 0x80 ? 0xFF : 0x00;
+        // for (int i = 0; i < CHANNELS; i++) {
+        //     // Calculate sign extension
+        //     int32_t extension = SPI_bytes_read[i * 3 + 0] & 0x80 ? 0xFF : 0x00;
+        //     // int32_t extension = 0;
 
-            // Calculate value
-            SPI_values_read[i] = (int32_t)SPI_bytes_read[i * 3 + 2] | ((int32_t)SPI_bytes_read[i * 3 + 1] << 8) | ((int32_t)SPI_bytes_read[i * 3 + 0] << 16) | ((int32_t)extension << 24);
+        //     // Calculate value
+        //     SPI_values_read[i] = (int32_t)SPI_bytes_read[i * 3 + 2] << 0 | ((int32_t)SPI_bytes_read[i * 3 + 1] << 8) | ((int32_t)SPI_bytes_read[i * 3 + 0] << 16) | (extension << 24);
+        //     // SPI_values_read[i] = (int32_t)SPI_bytes_read[i * 3 + 2] | ((int32_t)SPI_bytes_read[i * 3 + 1] << 8) | ((int32_t)SPI_bytes_read[i * 3 + 0] << 16) | extension;
 
-        }
+        //     // sendBuffer[i + packetAccum * packetSize] = (int32_t)SPI_bytes_read[i * 3 + 2] | ((int32_t)SPI_bytes_read[i * 3 + 1] << 8) | ((int32_t)SPI_bytes_read[i * 3 + 0] << 16) | ((int32_t)extension << 24);
+        // }
 
-        client.write((const uint8_t *) &SPI_values_read, sizeof(SPI_values_read));
+        // packetAccum++;
+        // if (packetAccum >= packetSize) {
+        //     client.write((const uint8_t *) &sendBuffer, sizeof(sendBuffer));
+        //     packetAccum = 0;
+        // }
+
+        //client.write((const uint8_t *) &SPI_values_read, sizeof(SPI_values_read));
+
+        client.write((const uint8_t *) &SPI_bytes_read, sizeof(SPI_bytes_read));
+
         // Serial.println();
 
-        loopCounter++;
+        // loopCounter++;
 
-        if (loopCounter > 1000) {
-            loopCounter = 0;
+        // if (loopCounter > 1000) {
+        //     loopCounter = 0;
             
-            uint32_t batVoltage = floor(getBatteryVoltage() * 100000.0);
-            uint32_t battery_packet[8] = {1, 2, 3, 4, 5, 6, 7, batVoltage};
+        //     uint32_t batVoltage = floor(getBatteryVoltage() * 100000.0);
+        //     uint32_t battery_packet[8] = {1, 2, 3, 4, 5, 6, 7, batVoltage};
 
-            client.write((const uint8_t *) &battery_packet, sizeof(battery_packet));
+        //     client.write((const uint8_t *) &battery_packet, sizeof(battery_packet));
 
+        // }
+    }
+
+    // Auto reconnect
+    if (!client.connected()) {
+        Serial.println("Server connection lost, reconnecting...");
+        while (!client.connect(bestNetwork.host, bestNetwork.port)) {
+            Serial.println("Connection failed.");
+            Serial.println("Waiting 2 seconds before retrying...");
+            delay(2000);
         }
     }
 
