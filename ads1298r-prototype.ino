@@ -92,12 +92,11 @@ void setup()
         analogReadResolution(12);
         adcAttachPin(VCAP1);
 
-
         pinMode(LED1, OUTPUT);
         pinMode(LED2, OUTPUT);
         pinMode(BUTTON, INPUT);
 
-        digitalWrite(ENABLE1, LOW);
+        digitalWrite(ENABLE1, HIGH);
         digitalWrite(ENABLE2, LOW);
         digitalWrite(REG_EN, HIGH);
         digitalWrite(READ_BAT, LOW);
@@ -278,17 +277,33 @@ void loop()
 
         // Serial.println();
 
-        // loopCounter++;
+        loopCounter++;
 
-        // if (loopCounter > 1000) {
-        //     loopCounter = 0;
+        if (loopCounter > 500*50) {
+            loopCounter = 0;
             
-        //     uint32_t batVoltage = floor(getBatteryVoltage() * 100000.0);
-        //     uint32_t battery_packet[8] = {1, 2, 3, 4, 5, 6, 7, batVoltage};
+            uint8_t SPI_bytes_read[36] = {0};
 
-        //     client.write((const uint8_t *) &battery_packet, sizeof(battery_packet));
+            SPI_bytes_read[0] = 0;
+            SPI_bytes_read[1] = 7;
+            SPI_bytes_read[2] = 127;
+            SPI_bytes_read[3] = 254;
 
-        // }
+            uint32_t batVoltage = floor(getBatteryVoltage() * 100000.0);
+            
+            SPI_bytes_read[4] = 254;
+            SPI_bytes_read[5] = 127;
+            SPI_bytes_read[6] = 7;
+            SPI_bytes_read[7] = 0;
+            
+            SPI_bytes_read[8] = batVoltage;
+            SPI_bytes_read[9] = batVoltage >> 8;
+            SPI_bytes_read[10] = batVoltage >> 16;
+            SPI_bytes_read[11] = batVoltage >> 24;
+
+            client.write((const uint8_t *) &SPI_bytes_read, sizeof(SPI_bytes_read));
+
+        }
     }
 
     // Auto reconnect
