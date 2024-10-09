@@ -1,3 +1,7 @@
 /build
 .vscode/*
 env.h
+
+debug.cfg
+debug.svd
+debug_custom.json
