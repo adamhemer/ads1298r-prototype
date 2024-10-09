@@ -119,7 +119,7 @@ void setup()
     delay(100);
 
     int n = WiFi.scanNetworks();
-    if (n == 0) {
+    if (n < 0) {
         Serial.println("No netowrks detected");
     } else {
         Serial.print(n);
