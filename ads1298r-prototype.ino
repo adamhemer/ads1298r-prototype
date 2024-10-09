@@ -58,6 +58,13 @@
 
 #define VCAP1       8
 
+// Battery
+#define BAT_UVD         true        // Under-voltage Detection enable
+#define BAT_MIN         3.2         // Cutoff voltage
+#define BAT_UVD_FREQ    500 * 60    // Test frequency 1 min (500Hz * 60s)
+#define BAT_M           1.2788      // Slope (m) of transform
+#define BAT_C           -1.3179     // Intercept (c) of transform
+
 
 WiFiClient client;
 
@@ -192,7 +199,7 @@ void setup()
     }
 }
 
-int loopCounter = 0;
+int batteryCounter = 0;
 
 // const int packetSize = 4;
 // int packetAccum = 0;
@@ -203,13 +210,9 @@ void loop()
 {
     if (!digitalRead(PIN_DRDY))
     {
-        uint8_t SPI_bytes_read[36] = {0};
-        int32_t SPI_values_read[8] = {0};
-
-        SPI_bytes_read[0] = 0;
-        SPI_bytes_read[1] = 7;
-        SPI_bytes_read[2] = 127;
-        SPI_bytes_read[3] = 254;
+        // Store incoming values
+        uint8_t SPI_bytes_read[24] = {0};
+        uint32_t SPI_values_read[8] = {0};
 
         // Start transaction
         SPI.beginTransaction(SPISettings(SPI_BAUD, SPI_BIT_ORDER, SPI_MODE));
@@ -217,73 +220,44 @@ void loop()
         delayMicroseconds(1);
 
         // Read status bytes
-        uint8_t status0 = SPI.transfer(0);
-        uint8_t status1 = SPI.transfer(0);
-        uint8_t status2 = SPI.transfer(0);
+        int status0 = SPI.transfer(0);
+        int status1 = SPI.transfer(0);
+        int status2 = SPI.transfer(0);
 
-
-        for (int i = 0; i < 4 * CHANNELS; i++)
+        // Read channel 1 - 4
+        for (int i = 0; i < 3 * CHANNELS; i++)
         {
-            if ((i+1) % 4 == 0)
-                SPI_bytes_read[i+4] = 7;
-            else
-                SPI_bytes_read[i+4] = SPI.transfer(0);
+            SPI_bytes_read[i] = SPI.transfer(0);
         }
 
         // End transaction
         digitalWrite(PIN_CS, HIGH);
         SPI.endTransaction();
 
-        // for (int i = 0; i < CHANNELS; i++) {
-        //     // Calculate sign extension
-        //     int32_t extension = SPI_bytes_read[i * 3 + 0] & 0x80 ? 0xFF : 0x00;
-        //     // int32_t extension = 0;
+        for (int i = 0; i < CHANNELS; i++) {
+            // Calculate sign extension
+            int32_t extension = SPI_bytes_read[i * 3 + 0] & 0x80 ? 0xFF : 0x00;
 
-        //     // Calculate value
-        //     SPI_values_read[i] = (int32_t)SPI_bytes_read[i * 3 + 2] << 0 | ((int32_t)SPI_bytes_read[i * 3 + 1] << 8) | ((int32_t)SPI_bytes_read[i * 3 + 0] << 16) | (extension << 24);
-        //     // SPI_values_read[i] = (int32_t)SPI_bytes_read[i * 3 + 2] | ((int32_t)SPI_bytes_read[i * 3 + 1] << 8) | ((int32_t)SPI_bytes_read[i * 3 + 0] << 16) | extension;
+            // Calculate value
+            SPI_values_read[i] = (int32_t)SPI_bytes_read[i * 3 + 2] | ((int32_t)SPI_bytes_read[i * 3 + 1] << 8) | ((int32_t)SPI_bytes_read[i * 3 + 0] << 16) | ((int32_t)extension << 24);
 
-        //     // sendBuffer[i + packetAccum * packetSize] = (int32_t)SPI_bytes_read[i * 3 + 2] | ((int32_t)SPI_bytes_read[i * 3 + 1] << 8) | ((int32_t)SPI_bytes_read[i * 3 + 0] << 16) | ((int32_t)extension << 24);
-        // }
+        }
 
-        // packetAccum++;
-        // if (packetAccum >= packetSize) {
-        //     client.write((const uint8_t *) &sendBuffer, sizeof(sendBuffer));
-        //     packetAccum = 0;
-        // }
+        client.write((const uint8_t *) &SPI_values_read, sizeof(SPI_values_read));
 
-        //client.write((const uint8_t *) &SPI_values_read, sizeof(SPI_values_read));
+        // Low voltage shutdown check
+        if (BAT_UVD) {
+            batteryCounter++;
+            if (batteryCounter > BAT_UVD_FREQ) {
+                batteryCounter = 0;
 
-        client.write((const uint8_t *) &SPI_bytes_read, sizeof(SPI_bytes_read));
-
-        // Serial.println();
-
-        loopCounter++;
-
-        if (loopCounter > 500*50) {
-            loopCounter = 0;
-            
-            uint8_t SPI_bytes_read[36] = {0};
-
-            SPI_bytes_read[0] = 0;
-            SPI_bytes_read[1] = 7;
-            SPI_bytes_read[2] = 127;
-            SPI_bytes_read[3] = 254;
-
-            uint32_t batVoltage = floor(getBatteryVoltage() * 100000.0);
-            
-            SPI_bytes_read[4] = 254;
-            SPI_bytes_read[5] = 127;
-            SPI_bytes_read[6] = 7;
-            SPI_bytes_read[7] = 0;
-            
-            SPI_bytes_read[8] = batVoltage;
-            SPI_bytes_read[9] = batVoltage >> 8;
-            SPI_bytes_read[10] = batVoltage >> 16;
-            SPI_bytes_read[11] = batVoltage >> 24;
-
-            client.write((const uint8_t *) &SPI_bytes_read, sizeof(SPI_bytes_read));
-
+                double voltage = BAT_M * getBatteryVoltage() + BAT_C;   // Get battery voltage and apply transform
+                if (voltage < BAT_MIN) {
+                    Serial.println("Low battery! Shutting down...");
+                    delay(2000);
+                    digitalWrite(REG_EN, LOW);  // Pull regulator enable pin low, disabling VCC
+                };
+            }
         }
     }
 
@@ -296,11 +270,6 @@ void loop()
             delay(2000);
         }
     }
-
-
-
-
-
 
 
 

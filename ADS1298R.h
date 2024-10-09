@@ -70,7 +70,7 @@ public:
     ADS1298R(int baud, int bitOrder, int mode); // Constructor, defaults: 2000000, MSBFIRST [=1], SPI_MODE1 [=1]
 
     void init();                    // Configures the ESP and ADC with pin and config settings, runs the initialsation loop.
-    void initLoop();                // Follows the boot sqeunce as outlined in the ADS1298R datasheet, checks that the ID is read correctly and retries if not.
+    void initLoop();                // Follows the boot sequence as outlined in the ADS1298R datasheet, checks that the ID is read correctly and retries if not.
 
     void readDataContinuous();      // Enables continuous data collection at the configured SPS speed
     void stopDataContinuous();      // Disables continuous data collection
