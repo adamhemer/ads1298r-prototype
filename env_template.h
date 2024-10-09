@@ -2,8 +2,9 @@
 // This is a template for the "env.h" file. Please follow the steps below.
 // 1. Rename this file to env.h BEFORE making any changes. If you don't change the name your credentials could be backed up to git.
 // 2. Replace the network credentials with the networks you wish to use the device on.
+//      2.1. The enterprise flag, username, and identity are only necessary for eduroam. Any private network will not require these.
 // 3. Update the Host IP and optionally the Port for each network by connecting the computer you are running MATLAB on and checking its IP
-//          3.1 This IP may change (especially for public networks) so you may need to update this fairly frequently
+//      3.1. This IP may change (especially for public networks) so you may need to update this fairly frequently
 // 4. Ensure that allNetworks[] contains all the networks you wish to connect to
 // 5. Update numNetworks to how many networks you have specified.
 
