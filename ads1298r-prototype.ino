@@ -2,12 +2,11 @@
 #include "Arduino.h"
 #include "SPI.h"
 #include "WiFi.h"
-#include "WiFiMulti.h"
-#include "esp_wpa2.h" //wpa2 library for connections to Enterprise networks
-#include "env.h" // WiFi credentials - not version controlled
+#include "esp_wpa2.h"   // wpa2 library for connections to Enterprise networks
+#include "env.h"        // WiFi credentials - not version controlled
 #include "ADS1298R.h"
 
-#include <esp_adc_cal.h>
+#include <esp_adc_cal.h>    // Libraries for ESP ADC
 #include <esp32-hal-adc.h>
 
 #define PIN_PWDN    9  // D2
@@ -43,15 +42,13 @@
 
 #define SERIAL_BAUD 115200
 
-#define CHANNELS    8 // For testing with less channels
-
-#define REVISION_2  true
+#define CHANNELS    8   // Do not modify - For testing with less channels only
 
 #define ENABLE1     1
 #define ENABLE2     2
 #define REG_EN      38
 #define READ_BAT    39
-#define BAT_ADC     15 // 40 cant do adc
+#define BAT_ADC     15 // 40 cant do adc, bridged to 15 with jumper wire
 #define CHARGE_EN   41
 #define TERM_OFF    42
 
@@ -62,14 +59,7 @@
 #define VCAP1       8
 
 
-// WiFiMulti WiFiMulti;
 WiFiClient client;
-
-// #define EAP_ANONYMOUS_IDENTITY "anonymous@flinders.edu.au" //anonymous@example.com, or you can use also nickname@example.com
-// #define EAP_IDENTITY "heme0012@flinders.edu.au" //nickname@example.com, at some organizations should work nickname only without realm, but it is not recommended
-// #define EAP_PASSWORD "" //password for eduroam account
-// #define EAP_USERNAME "heme0012" // the Username is the same as the Identity in most eduroam networks.
-// const char* ssid = "eduroam"; // eduroam SSID
 
 ADS1298R ads1298r(SPI_BAUD, SPI_BIT_ORDER, SPI_MODE);
 
@@ -78,34 +68,34 @@ WiFiCredentials bestNetwork;
 void setup()
 {
 
-    if (REVISION_2) {
-        pinMode(ENABLE1, OUTPUT);
-        pinMode(ENABLE2, OUTPUT);
-        pinMode(REG_EN, OUTPUT);
-        pinMode(READ_BAT, OUTPUT);
-        pinMode(CHARGE_EN, OUTPUT);
-        pinMode(TERM_OFF, OUTPUT);
+    // Battery charging pins
+    pinMode(ENABLE1, OUTPUT);
+    pinMode(ENABLE2, OUTPUT);
+    pinMode(REG_EN, OUTPUT);
+    pinMode(READ_BAT, OUTPUT);
+    pinMode(CHARGE_EN, OUTPUT);
+    pinMode(TERM_OFF, OUTPUT);
 
-        pinMode(BAT_ADC, INPUT);
-        
-        pinMode(VCAP1, INPUT);
-        analogReadResolution(12);
-        adcAttachPin(VCAP1);
+    pinMode(BAT_ADC, INPUT);
+    
+    // Pin to measure VCAP1 on ADS1298R
+    pinMode(VCAP1, INPUT);
+    analogReadResolution(12);
+    adcAttachPin(VCAP1);
 
-        pinMode(LED1, OUTPUT);
-        pinMode(LED2, OUTPUT);
-        pinMode(BUTTON, INPUT);
+    // User IO
+    pinMode(LED1, OUTPUT);
+    pinMode(LED2, OUTPUT);
+    pinMode(BUTTON, INPUT);
 
-        digitalWrite(ENABLE1, HIGH);
-        digitalWrite(ENABLE2, LOW);
-        digitalWrite(REG_EN, HIGH);
-        digitalWrite(READ_BAT, LOW);
-        digitalWrite(CHARGE_EN, LOW);
-        digitalWrite(TERM_OFF, LOW);
+    // Default values
+    digitalWrite(ENABLE1, HIGH);    // Fast charging enabled (500mA)
+    digitalWrite(ENABLE2, LOW);
+    digitalWrite(REG_EN, HIGH);     // Regulator enable, pull low to turn off device
+    digitalWrite(READ_BAT, LOW);    // Read bat, set high then read from BAT_ADC
+    digitalWrite(CHARGE_EN, LOW);   // Charging enabled
+    digitalWrite(TERM_OFF, LOW);    // Termination timers enabled
 
-
-
-    }
 
     // ======== Serial setup ========
     Serial.begin(SERIAL_BAUD);
@@ -118,8 +108,6 @@ void setup()
 
 
     // ======== Wifi setup ========
-    //pinMode(D9, OUTPUT);
-    // digitalWrite(D9, LOW);
     pinMode(LED1, OUTPUT);
     digitalWrite(LED1, LOW);
     delay(10);
@@ -131,12 +119,12 @@ void setup()
     delay(100);
 
     int n = WiFi.scanNetworks();
-    Serial.println("scan done");
     if (n == 0) {
-        Serial.println("no networks found");
+        Serial.println("No netowrks detected");
     } else {
         Serial.print(n);
-        Serial.println(" networks found");
+        Serial.println(" networks found!");
+        // Iterate from smallest to largest signal strength
         for (int i = n - 1; i >= 0; i--) {
             // Print SSID and RSSI for each network found
             Serial.print(i + 1);
@@ -148,15 +136,17 @@ void setup()
             Serial.print((WiFi.encryptionType(i) == WIFI_AUTH_OPEN)?" ":"*");
             delay(10);
 
+            // Check if network is in the list of known networks
             for (int j = 0; j < numNetworks; j++) {
                 if (WiFi.SSID(i) == allNetworks[j].ssid) {
-                    bestNetwork = allNetworks[j];
+                    bestNetwork = allNetworks[j];           // Update best network
                     Serial.print(" - credentials known");
                 }
             }
             Serial.println();
         }
     }
+    // Networks iterated weakest to strongest so bestNetwork will be the highest strength, known network.
     Serial.println("");
     Serial.print("Best network with known credentials is ");
     Serial.println(bestNetwork.ssid);
@@ -177,7 +167,7 @@ void setup()
 
 
     while (WiFi.status() != WL_CONNECTED) {
-        Serial.print(F("."));   // Loading bar "...." in serial monitor while connecting
+        Serial.print(F("."));                   // Loading bar "...." in serial monitor while connecting
         delay(250);
         digitalWrite(LED1, LOW);
         delay(250);
@@ -188,8 +178,7 @@ void setup()
     Serial.println(F("WiFi is connected!"));
     Serial.println(F("IP address set: "));
     Serial.println(WiFi.localIP()); 
-    // digitalWrite(D9, HIGH);                 // Visual indication that wifi is connected
-    digitalWrite(LED1, HIGH);
+    digitalWrite(LED1, HIGH);                   // Visual indication that wifi is connected
 
 
     // -------- Connect to Server ---------
@@ -200,7 +189,6 @@ void setup()
         Serial.println("Connection failed.");
         Serial.println("Waiting 2 seconds before retrying...");
         delay(2000);
-        // return;
     }
 }
 
@@ -215,8 +203,6 @@ void loop()
 {
     if (!digitalRead(PIN_DRDY))
     {
-        // Store incoming values
-        // uint8_t SPI_bytes_read[24] = {0};
         uint8_t SPI_bytes_read[36] = {0};
         int32_t SPI_values_read[8] = {0};
 
@@ -235,11 +221,6 @@ void loop()
         uint8_t status1 = SPI.transfer(0);
         uint8_t status2 = SPI.transfer(0);
 
-        // Read channel 1 - 4
-        // for (int i = 0; i < 3 * CHANNELS; i++)
-        // {
-        //     SPI_bytes_read[i] = SPI.transfer(0);
-        // }
 
         for (int i = 0; i < 4 * CHANNELS; i++)
         {

@@ -65,23 +65,23 @@
 #define WCT2        0x19
 
 
-;class ADS1298R {
+class ADS1298R {
 public:
-    ADS1298R(int baud, int bitOrder, int mode);
+    ADS1298R(int baud, int bitOrder, int mode); // Constructor, defaults: 2000000, MSBFIRST [=1], SPI_MODE1 [=1]
 
-    void init();
-    void initLoop();
+    void init();                    // Configures the ESP and ADC with pin and config settings, runs the initialsation loop.
+    void initLoop();                // Follows the boot sqeunce as outlined in the ADS1298R datasheet, checks that the ID is read correctly and retries if not.
 
-    void readDataContinuous();
-    void stopDataContinuous();
+    void readDataContinuous();      // Enables continuous data collection at the configured SPS speed
+    void stopDataContinuous();      // Disables continuous data collection
 
-    void writeRegister(uint8_t reg, uint8_t value);
+    void writeRegister(uint8_t reg, uint8_t value);                         // Write a single byte register
 
-    void writeRegisters(uint8_t start_reg, int num_regs, uint8_t* value);
+    void writeRegisters(uint8_t start_reg, int num_regs, uint8_t* value);   // Write multiple registers
 
-    uint8_t readRegister(uint8_t reg);
+    uint8_t readRegister(uint8_t reg);                                      // Read a single register
 
-    uint8_t* readRegisters(uint8_t start_reg, int num_regs);
+    uint8_t* readRegisters(uint8_t start_reg, int num_regs);                // Read multiple registers
 
 private:
     SPISettings busSettings;

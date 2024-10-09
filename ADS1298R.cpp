@@ -14,11 +14,15 @@
 
 extern SPIClass SPI;
 
-ADS1298R::ADS1298R(int baud, int bitOrder, int mode) {
+ADS1298R::ADS1298R(int baud = 2000000, int bitOrder = MSBFIRST, int mode = SPI_MODE1) {
 
     busSettings = SPISettings(baud, bitOrder, mode);
 
 };
+
+/*
+    readDataContinuous - Enables continuous data collection at the configured SPS speed
+*/
 
 void ADS1298R::readDataContinuous() {
     SPI.beginTransaction(busSettings);
@@ -30,6 +34,11 @@ void ADS1298R::readDataContinuous() {
     delayMicroseconds(1000); // Wait for device to change mode
 };
 
+/*
+    stopDataContinuous - Disables continuous data collection
+*/
+
+
 void ADS1298R::stopDataContinuous() {
     SPI.beginTransaction(busSettings);
     digitalWrite(PIN_CS, LOW);
@@ -39,6 +48,12 @@ void ADS1298R::stopDataContinuous() {
 
     delayMicroseconds(1000); // Wait for device to change mode
 };
+
+/*
+    initLoop - Follows the boot sqeunce as outlined in the ADS1298R datasheet,
+               checks that the ID is read correctly and retries if not.
+*/
+
 
 void ADS1298R::initLoop() {
     int id;
@@ -159,6 +174,10 @@ void ADS1298R::initLoop() {
     delay(10);
 }
 
+/*
+    init - Configures the ESP and ADC with pin and config settings, runs the initialsation loop.
+*/
+
 void ADS1298R::init() {
     
     SPI.begin(PIN_SCLK, PIN_DOUT, PIN_DIN);
@@ -189,26 +208,26 @@ void ADS1298R::init() {
 };
 
 /*
-    writeRegister
+    writeRegister - Write a single byte register
         uint8_t reg         register address to write to
         uint8_t value       data to write
 */
 
 void ADS1298R::writeRegister(uint8_t reg, uint8_t value) {
 
-    SPI.beginTransaction(busSettings);
-    digitalWrite(PIN_CS, LOW);
-    SPI.transfer(WREG | reg);
-    SPI.transfer(0x00);
-    SPI.transfer(value);
-    digitalWrite(PIN_CS, HIGH);
-    SPI.endTransaction();
+    SPI.beginTransaction(busSettings);  // Start SPI transmission
+    digitalWrite(PIN_CS, LOW);          // Select destination on the bus
+    SPI.transfer(WREG | reg);           // WREG command + register address
+    SPI.transfer(0x00);                 // Transferring (0x00 + 1) bytes
+    SPI.transfer(value);                // Send the byte
+    digitalWrite(PIN_CS, HIGH);         // Disable destination
+    SPI.endTransaction();               // End SPI transmission
 
-    delayMicroseconds(10000);
+    delayMicroseconds(10000);           // Not strictly necessary but appeared to resolve some issues with back-to-back transmissions
 };
 
 /*
-    writeRegisters
+    writeRegisters - Write multiple registers
         uint8_t start_reg   first register to write to
         int num_regs        number of sequential registers to write
         uint8_t value       data to write (as an array of length num_regs)
@@ -234,7 +253,7 @@ void ADS1298R::writeRegisters(uint8_t start_reg, int num_regs, uint8_t* value) {
 };
 
 /*
-    readRegister
+    readRegister - Read a single register
         uint8_t reg         register address to read from
 
     return
@@ -256,7 +275,7 @@ uint8_t ADS1298R::readRegister(uint8_t reg) {
 };
 
 /*
-    readRegisters
+    readRegisters - Read multiple registers
         uint8_t start_reg   first register to read from
         int num_regs        number of sequential registers to read
 
