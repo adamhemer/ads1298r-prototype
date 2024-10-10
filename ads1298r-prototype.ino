@@ -68,7 +68,7 @@
 
 WiFiClient client;
 
-ADS1298R ads1298r(SPI_BAUD, SPI_BIT_ORDER, SPI_MODE);
+ADS1298R ads1298r(ADS1298R::CHSET_CH2_ONLY, SPI_BAUD, SPI_BIT_ORDER, SPI_MODE);
 
 WiFiCredentials bestNetwork;
 
@@ -111,6 +111,10 @@ void setup()
 
 
     // ======== ADS1298R setup ========
+    // CHnSET : Test Signal 0x_5, Shorted 0x_1, Normal 0x_0.
+    // uint8_t channelSettings[] = { 0x00, 0x00, 0b00000010, 0x05, 0x05, 0x05, 0x05, 0x05 }; // Respiration testing
+    // uint8_t channelSettings[] = { 0x05, 0x00, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05 }; // ECG on Channel 2, Others test signal.
+    uint8_t channelSettings[] = { 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05 }; // All channels test signal.
     ads1298r.init();
 
 
@@ -270,8 +274,6 @@ void loop()
             delay(2000);
         }
     }
-
-
 
 
 

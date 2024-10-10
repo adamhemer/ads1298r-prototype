@@ -67,7 +67,7 @@
 
 class ADS1298R {
 public:
-    ADS1298R(int baud, int bitOrder, int mode); // Constructor, defaults: 2000000, MSBFIRST [=1], SPI_MODE1 [=1]
+    ADS1298R(const uint8_t* channelSettings, int baud, int bitOrder, int mode); // Constructor, defaults: 2000000, MSBFIRST [=1], SPI_MODE1 [=1]
 
     void init();                    // Configures the ESP and ADC with pin and config settings, runs the initialsation loop.
     void initLoop();                // Follows the boot sequence as outlined in the ADS1298R datasheet, checks that the ID is read correctly and retries if not.
@@ -83,7 +83,16 @@ public:
 
     uint8_t* readRegisters(uint8_t start_reg, int num_regs);                // Read multiple registers
 
+    void setChannelConfigs(uint8_t* channel_settings);                      // Set configuration of channels, can use shorthands below or custom array.
+    void writeChannelConfigs();                                             // Writes channel config to device. 
+
+    // Shorthand for channel settings
+    const static uint8_t CHSET_ALL_TEST[8];
+    const static uint8_t CHSET_CH2_ONLY[8];
+    const static uint8_t CHSET_ALL_ON[8];
+
 private:
     SPISettings busSettings;
+    uint8_t* channelSettings;
 
 };

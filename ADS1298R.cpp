@@ -14,10 +14,9 @@
 
 extern SPIClass SPI;
 
-ADS1298R::ADS1298R(int baud = 2000000, int bitOrder = MSBFIRST, int mode = SPI_MODE1) {
-
+ADS1298R::ADS1298R(const uint8_t* channelSettings, int baud = 2000000, int bitOrder = MSBFIRST, int mode = SPI_MODE1) {
+    this->channelSettings = (uint8_t*)channelSettings;
     busSettings = SPISettings(baud, bitOrder, mode);
-
 };
 
 /*
@@ -121,12 +120,8 @@ void ADS1298R::initLoop() {
         // 0x5_ = 8
         // 0x6_ = 12
 
-        // WREG CHnSET 0x00 - Test Signal 0x_5, Shorted 0x_1, Normal 0x_0.
-        // uint8_t channelSettings[] = { 0x00, 0x00, 0b00000010, 0x05, 0x05, 0x05, 0x05, 0x05 }; // Respiration testing
-        // uint8_t channelSettings[] = { 0x05, 0x00, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05 }; // ECG on Channel 2, Others test signal.
-        uint8_t channelSettings[] = { 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05 }; // All channels test signal.
         delay(10);
-        writeRegisters(CH1SET, 8, channelSettings);
+        writeChannelConfigs();
 
         // WREG RESP 0b11 1 100 10 0xF2
         //writeRegister(RESP, 0xF2);
@@ -302,6 +297,23 @@ uint8_t* ADS1298R::readRegisters(uint8_t start_reg, int num_regs) {
     return data;
 };
 
+/* 
+    setChannelConfig - Sets channel configuration variable
+*/
 
+void ADS1298R::setChannelConfigs(uint8_t* channelSettings) {
+    this->channelSettings = channelSettings;
+}
 
+/* 
+    writeChannelConfigs - Writes channel configuration to device
+*/
 
+void ADS1298R::writeChannelConfigs() {
+    writeRegisters(CH1SET, 8, channelSettings);
+}
+
+// Commonly used channel settings
+const uint8_t CHSET_ALL_TEST[] = { 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05 }; // All channels test signal.
+const uint8_t CHSET_CH2_ONLY[] = { 0x05, 0x00, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05 }; // CH2 normal and all other channels test signal.
+const uint8_t CHSET_ALL_ON[] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }; // All channels normal operation
