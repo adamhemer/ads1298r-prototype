@@ -68,13 +68,14 @@
 
 WiFiClient client;
 
-ADS1298R ads1298r(ADS1298R::CHSET_CH2_ONLY, SPI_BAUD, SPI_BIT_ORDER, SPI_MODE);
+uint8_t channelConfig[] = { 0x05, 0x00, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05 }; // See datasheet for details on CHnSET
+
+ADS1298R ads1298r(channelConfig, SPI_BAUD, SPI_BIT_ORDER, SPI_MODE);
 
 WiFiCredentials bestNetwork;
 
 void setup()
 {
-
     // Battery charging pins
     pinMode(ENABLE1, OUTPUT);
     pinMode(ENABLE2, OUTPUT);

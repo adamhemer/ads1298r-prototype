@@ -312,8 +312,3 @@ void ADS1298R::setChannelConfigs(uint8_t* channelSettings) {
 void ADS1298R::writeChannelConfigs() {
     writeRegisters(CH1SET, 8, channelSettings);
 }
-
-// Commonly used channel settings
-const uint8_t CHSET_ALL_TEST[] = { 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05 }; // All channels test signal.
-const uint8_t CHSET_CH2_ONLY[] = { 0x05, 0x00, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05 }; // CH2 normal and all other channels test signal.
-const uint8_t CHSET_ALL_ON[] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }; // All channels normal operation
