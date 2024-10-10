@@ -65,6 +65,11 @@
 #define BAT_M           1.2788      // Slope (m) of transform
 #define BAT_C           -1.3179     // Intercept (c) of transform
 
+// Calculation Values
+#define BAT_MAX         4.2
+#define BAT_MIN         3.2
+#define BAT_DURATION    5.4 * 60    // 5.4 Hours
+
 
 WiFiClient client;
 
@@ -73,6 +78,11 @@ uint8_t channelConfig[] = { 0x05, 0x00, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05 }; //
 ADS1298R ads1298r(channelConfig, SPI_BAUD, SPI_BIT_ORDER, SPI_MODE);
 
 WiFiCredentials bestNetwork;
+
+
+
+
+
 
 void setup()
 {
@@ -96,6 +106,9 @@ void setup()
     pinMode(LED2, OUTPUT);
     pinMode(BUTTON, INPUT);
 
+    digitalWrite(LED1, LOW);
+    digitalWrite(LED2, LOW);
+
     // Default values
     digitalWrite(ENABLE1, HIGH);    // Fast charging enabled (500mA)
     digitalWrite(ENABLE2, LOW);
@@ -108,7 +121,15 @@ void setup()
     // ======== Serial setup ========
     Serial.begin(SERIAL_BAUD);
     delay(3000);
-    Serial.println("Starting sequence...");
+    Serial.println("+-------------------------------------+");
+    Serial.println("|        Music From Biosignals        |");
+    Serial.println("+-------------------------------------+");
+    Serial.println("|      On-Body Collection Device      |");
+    Serial.println("|             Adam Hemer              |");
+    Serial.println("|         Flinders University         |");
+    Serial.println("+-------------------------------------+");
+    Serial.println();
+    Serial.println("Starting ADS1298R boot sequence...");
 
 
     // ======== ADS1298R setup ========
@@ -116,11 +137,13 @@ void setup()
     // uint8_t channelSettings[] = { 0x00, 0x00, 0b00000010, 0x05, 0x05, 0x05, 0x05, 0x05 }; // Respiration testing
     // uint8_t channelSettings[] = { 0x05, 0x00, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05 }; // ECG on Channel 2, Others test signal.
     uint8_t channelSettings[] = { 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05 }; // All channels test signal.
+
+    digitalWrite(LED2, HIGH);
     ads1298r.init();
+    digitalWrite(LED2, LOW);
 
 
     // ======== Wifi setup ========
-    pinMode(LED1, OUTPUT);
     digitalWrite(LED1, LOW);
     delay(10);
 
@@ -186,6 +209,16 @@ void setup()
         digitalWrite(LED1, HIGH);
 
     }
+
+    // Triple flash to indicate connected
+    for (int i = 0; i < 3; i++) {
+        delay(100);
+        digitalWrite(LED1, LOW);
+        delay(100);
+        digitalWrite(LED1, HIGH);
+    }
+    
+
     Serial.println("");
     Serial.println(F("WiFi is connected!"));
     Serial.println(F("IP address set: "));
@@ -200,8 +233,21 @@ void setup()
     while (!client.connect(bestNetwork.host, bestNetwork.port)) {
         Serial.println("Connection failed.");
         Serial.println("Waiting 2 seconds before retrying...");
+        digitalWrite(LED2, LOW);
         delay(2000);
+        digitalWrite(LED2, HIGH);
     }
+
+    // Triple flash to indicate connected
+    for (int i = 0; i < 3; i++) {
+        delay(100);
+        digitalWrite(LED2, LOW);
+        delay(100);
+        digitalWrite(LED2, HIGH);
+    }
+
+    // -------- Send Device Details ---------
+    sendClientHeader();
 }
 
 int batteryCounter = 0;
@@ -272,8 +318,20 @@ void loop()
         while (!client.connect(bestNetwork.host, bestNetwork.port)) {
             Serial.println("Connection failed.");
             Serial.println("Waiting 2 seconds before retrying...");
+            digitalWrite(LED2, LOW);
             delay(2000);
+            digitalWrite(LED2, HIGH);
         }
+
+        // Triple flash to indicate connected
+        for (int i = 0; i < 3; i++) {
+            delay(100);
+            digitalWrite(LED2, LOW);
+            delay(100);
+            digitalWrite(LED2, HIGH);
+        }
+
+        sendClientHeader();
     }
 
 
@@ -294,20 +352,62 @@ void loop()
     // Serial.println(vcap);
 }
 
-
+// Get battery voltage from ADC and apply voltage divider (10K - 27K) and power rail (3.3)
 double getBatteryVoltage() {
     digitalWrite(CHARGE_EN, HIGH); // Disable charging
     digitalWrite(READ_BAT, HIGH); // Enable resistor divider
 
     delayMicroseconds(100);
-    // delay(10);
     double voltage = ((double)analogRead(BAT_ADC) / 4096.0) * (37.0 / 27.0) * 3.3; // 0 to 4096 for 3.3V, adjust to voltage divider ratio. 
-    // Serial.println(mv);
-    // Serial1.println(mv);
-    // delay(10);
 
     digitalWrite(READ_BAT, LOW); // Disable resistor divider
     digitalWrite(CHARGE_EN, LOW); // Enable charging
 
     return voltage;
+}
+
+// Get battery voltage and correct based on linear transform
+double getBatteryVoltageCorrected() {
+    return BAT_M * getBatteryVoltage() + BAT_C;
+}
+
+// Very rough approximation of battery time remaining from a linearised model of data collected.
+int getBatteryTimeRemaining() {
+    double norm = (getBatteryVoltageCorrected() - BAT_MIN) / (BAT_MAX - BAT_MIN);    // Normalise battery voltage
+    double minsRemaining = norm * BAT_DURATION;                 // Apply linear approximation
+
+    return (int)minsRemaining;
+}
+
+// Header data sent to matlab with battery details and "STRT" command
+void sendClientHeader() {
+    Serial.println("Getting battery voltage...");
+    double voltage = getBatteryVoltageCorrected();   // Get battery voltage and apply transform
+    Serial.print("Battery Voltage: ");
+    Serial.println(voltage);
+
+    uint32_t voltageInt = (uint32_t)(voltage * 1000000.0);
+    Serial.print("Battery Voltage (x1e6): ");
+    Serial.println(voltageInt);
+    uint8_t voltBuf[4];
+    voltBuf[0] = voltageInt >> 24;
+    voltBuf[1] = voltageInt >> 16;
+    voltBuf[2] = voltageInt >>  8;
+    voltBuf[3] = voltageInt;
+    client.write((const uint8_t *) &voltBuf, sizeof(voltBuf));
+
+    int mins = getBatteryTimeRemaining();
+    Serial.print("Estimated Time Remaining: ");
+    Serial.print(mins);
+    Serial.print(" m, (");
+    Serial.print(mins/60.0);
+    Serial.println(" h)");
+            
+    uint8_t minBuf[4] = { 0, 0, mins >> 8, mins % 255 };
+    client.write((const uint8_t *) &minBuf, sizeof(minBuf));
+
+    Serial.println();
+    Serial.println("Starting data collection.");
+    uint8_t startBuf[4] = { 0x53, 0x54, 0x52, 0x54 };           // STRT in hex
+    client.write((const uint8_t *) &startBuf, sizeof(startBuf));
 }
