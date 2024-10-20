@@ -1,8 +1,8 @@
 #include <SPI.h>
 #include "Arduino.h"
 #include "stdint.h"
-
-#define PIN_PWDN    9    //D2
+                          //Prototype pins commented out
+#define PIN_PWDN    9     //D2
 #define PIN_RST     18    //D3
 #define PIN_START   12    //D5
 #define PIN_CS      13    //14

@@ -156,13 +156,13 @@ void setup()
     // uint8_t channelSettings[] = { 0x05, 0x00, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05 }; // ECG on Channel 2, Others test signal.
     uint8_t channelSettings[] = { 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05 }; // All channels test signal.
 
-    digitalWrite(LED2, HIGH);
+    digitalWrite(LED1, HIGH);
     ads1298r.init();
-    digitalWrite(LED2, LOW);
+    digitalWrite(LED1, LOW);
 
 
     // ======== Wifi setup ========
-    digitalWrite(LED1, LOW);
+    digitalWrite(LED2, LOW);
     delay(10);
 
 
@@ -173,7 +173,7 @@ void setup()
 
     int n = WiFi.scanNetworks();
     if (n < 0) {
-        Serial.println("No netowrks detected");
+        Serial.println("No networks detected");
     } else {
         Serial.print(n);
         Serial.println(" networks found!");
@@ -222,18 +222,18 @@ void setup()
     while (WiFi.status() != WL_CONNECTED) {
         Serial.print(F("."));                   // Loading bar "...." in serial monitor while connecting
         delay(250);
-        digitalWrite(LED1, LOW);
+        digitalWrite(LED2, LOW);
         delay(250);
-        digitalWrite(LED1, HIGH);
+        digitalWrite(LED2, HIGH);
 
     }
 
     // Triple flash to indicate connected
     for (int i = 0; i < 3; i++) {
         delay(100);
-        digitalWrite(LED1, LOW);
+        digitalWrite(LED2, LOW);
         delay(100);
-        digitalWrite(LED1, HIGH);
+        digitalWrite(LED2, HIGH);
     }
     
 
@@ -241,7 +241,7 @@ void setup()
     Serial.println(F("WiFi is connected!"));
     Serial.println(F("IP address set: "));
     Serial.println(WiFi.localIP()); 
-    digitalWrite(LED1, HIGH);                   // Visual indication that wifi is connected
+    digitalWrite(LED2, HIGH);                   // Visual indication that wifi is connected
 
 
     // -------- Connect to Server ---------
@@ -251,17 +251,17 @@ void setup()
     while (!client.connect(bestNetwork.host, bestNetwork.port)) {
         Serial.println("Connection failed.");
         Serial.println("Waiting 2 seconds before retrying...");
-        digitalWrite(LED2, LOW);
+        digitalWrite(LED1, LOW);
         delay(2000);
-        digitalWrite(LED2, HIGH);
+        digitalWrite(LED1, HIGH);
     }
 
     // Triple flash to indicate connected
     for (int i = 0; i < 3; i++) {
         delay(100);
-        digitalWrite(LED2, LOW);
+        digitalWrite(LED1, LOW);
         delay(100);
-        digitalWrite(LED2, HIGH);
+        digitalWrite(LED1, HIGH);
     }
 
     // -------- Send Device Details ---------
@@ -335,17 +335,17 @@ void loop()
         while (!client.connect(bestNetwork.host, bestNetwork.port)) {
             Serial.println("Connection failed.");
             Serial.println("Waiting 2 seconds before retrying...");
-            digitalWrite(LED2, LOW);
+            digitalWrite(LED1, LOW);
             delay(2000);
-            digitalWrite(LED2, HIGH);
+            digitalWrite(LED1, HIGH);
         }
 
         // Triple flash to indicate connected
         for (int i = 0; i < 3; i++) {
             delay(100);
-            digitalWrite(LED2, LOW);
+            digitalWrite(LED1, LOW);
             delay(100);
-            digitalWrite(LED2, HIGH);
+            digitalWrite(LED1, HIGH);
         }
 
         sendClientHeader();
