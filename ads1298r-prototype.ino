@@ -79,8 +79,6 @@ ADS1298R ads1298r(channelConfig, SPI_BAUD, SPI_BIT_ORDER, SPI_MODE);
 
 WiFiCredentials bestNetwork;
 
-// double lastBatteryVoltage = -1;
-// int batteryTime = INT_MAX;
 long long batteryEmptyTime = LONG_LONG_MAX;
 
 void setup()
@@ -269,13 +267,6 @@ void setup()
     // -------- Send Device Details ---------
     sendClientHeader();
 }
-
-int batteryCounter = 0;
-
-// const int packetSize = 4;
-// int packetAccum = 0;
-
-// uint32_t sendBuffer[8 * packetSize] = {0};
 
 void loop()
 {
