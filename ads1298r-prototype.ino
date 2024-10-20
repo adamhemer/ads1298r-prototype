@@ -60,7 +60,7 @@
 
 // Battery
 #define BAT_UVD         true        // Under-voltage Detection enable
-#define BAT_MIN         3.2         // Cutoff voltage
+#define BAT_LOW         3.4         // Cutoff voltage
 #define BAT_UVD_FREQ    500 * 60    // Test frequency 1 min (500Hz * 60s)
 #define BAT_M           1.2788      // Slope (m) of transform
 #define BAT_C           -1.3179     // Intercept (c) of transform
@@ -79,10 +79,9 @@ ADS1298R ads1298r(channelConfig, SPI_BAUD, SPI_BIT_ORDER, SPI_MODE);
 
 WiFiCredentials bestNetwork;
 
-
-
-
-
+// double lastBatteryVoltage = -1;
+// int batteryTime = INT_MAX;
+long long batteryEmptyTime = LONG_LONG_MAX;
 
 void setup()
 {
@@ -129,10 +128,31 @@ void setup()
     Serial.println("|         Flinders University         |");
     Serial.println("+-------------------------------------+");
     Serial.println();
-    Serial.println("Starting ADS1298R boot sequence...");
+    
+    // ======== Battery Check ========
+    Serial.println("Getting battery voltage...");
+    double voltage = getBatteryVoltageCorrected();      // Get battery voltage
+    Serial.print("Battery Voltage: ");
+    Serial.println(voltage);
+
+    if (voltage < BAT_LOW) {
+        Serial.print("Battery voltage too low! Shutting down...");
+        digitalWrite(REG_EN, LOW);                      // Shutdown voltage regulator
+    }
+
+    int batteryTime = getBatteryTimeRemaining();        // Minutes till battery predicted empty
+    long long remainingMS = batteryTime * 60 * 1000;    // Milliseconds till battery predicted empty
+    batteryEmptyTime = millis() + remainingMS;          // Add to current time to find empty time
+
+    Serial.print("Estimated Time Remaining: ");
+    Serial.print(batteryTime);
+    Serial.print(" m, (");
+    Serial.print(batteryTime/60.0);
+    Serial.println(" h)");
 
 
     // ======== ADS1298R setup ========
+    Serial.println("Starting ADS1298R boot sequence...");
     // CHnSET : Test Signal 0x_5, Shorted 0x_1, Normal 0x_0.
     // uint8_t channelSettings[] = { 0x00, 0x00, 0b00000010, 0x05, 0x05, 0x05, 0x05, 0x05 }; // Respiration testing
     // uint8_t channelSettings[] = { 0x05, 0x00, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05 }; // ECG on Channel 2, Others test signal.
@@ -291,23 +311,29 @@ void loop()
 
             // Calculate value
             SPI_values_read[i] = (int32_t)SPI_bytes_read[i * 3 + 2] | ((int32_t)SPI_bytes_read[i * 3 + 1] << 8) | ((int32_t)SPI_bytes_read[i * 3 + 0] << 16) | ((int32_t)extension << 24);
-
         }
 
         client.write((const uint8_t *) &SPI_values_read, sizeof(SPI_values_read));
 
         // Low voltage shutdown check
-        if (BAT_UVD) {
-            batteryCounter++;
-            if (batteryCounter > BAT_UVD_FREQ) {
-                batteryCounter = 0;
+        if (BAT_UVD && millis() > batteryEmptyTime) {   // May need to check less often, long long > long long might be expensive computationally
+            
+            double voltage = getBatteryVoltageCorrected();      // Get battery voltage
 
-                double voltage = BAT_M * getBatteryVoltage() + BAT_C;   // Get battery voltage and apply transform
-                if (voltage < BAT_MIN) {
-                    Serial.println("Low battery! Shutting down...");
-                    delay(2000);
-                    digitalWrite(REG_EN, LOW);  // Pull regulator enable pin low, disabling VCC
-                };
+            if (voltage < BAT_LOW) {                            // If battery voltage too low
+                Serial.print("Battery voltage too low! Shutting down...");
+                digitalWrite(REG_EN, LOW);                      // Shutdown voltage regulator
+            } else {    // If not
+                        // Recalculate battery time
+                int batteryTime = getBatteryTimeRemaining();        // Minutes till battery predicted empty
+                long long remainingMS = batteryTime * 60 * 1000;    // Milliseconds till battery predicted empty
+                batteryEmptyTime = millis() + remainingMS;          // Add to current time to find empty time
+
+                Serial.print("Estimated Time Remaining: ");
+                Serial.print(batteryTime);
+                Serial.print(" m, (");
+                Serial.print(batteryTime/60.0);
+                Serial.println(" h)");
             }
         }
     }
@@ -333,23 +359,6 @@ void loop()
 
         sendClientHeader();
     }
-
-
-
-
-    // digitalWrite(READ_BAT, HIGH);
-    // delayMicroseconds(100);
-
-
-
-
-    // digitalWrite(READ_BAT, LOW);
-
-    // float mv = analogRead(BAT_ADC);// / 4096.0) * (37.0 / 27.0) * 3.3; // 0 to 4096 for 3.3V, adjust to voltage divider ratio. 
-    // Serial.print(mv);
-    // Serial.print(', ');
-    // float vcap = analogRead(VCAP1);// / 4096.0) * 3.3; // 0 to 4096 for 3.3V
-    // Serial.println(vcap);
 }
 
 // Get battery voltage from ADC and apply voltage divider (10K - 27K) and power rail (3.3)
@@ -402,6 +411,9 @@ void sendClientHeader() {
     Serial.print(" m, (");
     Serial.print(mins/60.0);
     Serial.println(" h)");
+
+    long long remainingMS = mins * 60 * 1000;   // Milliseconds till battery predicted empty
+    batteryEmptyTime = millis() + remainingMS;     // Add to current time to find empty time
             
     uint8_t minBuf[4] = { 0, 0, mins >> 8, mins % 255 };
     client.write((const uint8_t *) &minBuf, sizeof(minBuf));
