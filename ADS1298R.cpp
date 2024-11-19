@@ -60,8 +60,7 @@ void ADS1298R::initLoop() {
     const int maxAttempts = 4;
     do {
         Serial.println("Starting SPI.");
-        SPI.begin(PIN_SCLK, PIN_DOUT, PIN_DIN); // This should work the same as below??
-        //SPI.begin(18, 19, 23);
+        SPI.begin(PIN_SCLK, PIN_DOUT, PIN_DIN);
 
         // ADS1298R Startup Proceedure
         digitalWrite(PIN_PWDN, LOW);
@@ -92,14 +91,14 @@ void ADS1298R::initLoop() {
         delayMicroseconds(2);
         digitalWrite(PIN_RST, HIGH);
 
-        delayMicroseconds(50); // Wait for reset time (18 clocks ~= 10us)               // Maybe increase this time even more??
+        delayMicroseconds(50); // Wait for reset time (18 clocks ~= 10us)                        // Maybe increase this time even more??
 
         // SDATAC
         stopDataContinuous();
 
         // WREG CONFIG3 0xC0 - Turn on internal reference  0b11001100
         delay(10);
-        writeRegister(CONFIG3, 0xCC);//0x0b11001100);                            // C0 internal reference, 4C rld stuff, CC for both
+        writeRegister(CONFIG3, 0xCC);//0x0b11001100);                                            // C0 internal reference, 4C rld stuff, CC for both
 
         // WREG CONFIG1 0x86
         delay(10);

@@ -135,6 +135,7 @@ void setup()
 
     if (voltage < BAT_LOW) {
         Serial.print("Battery voltage too low! Shutting down...");
+        delay(1000);
         digitalWrite(REG_EN, LOW);                      // Shutdown voltage regulator
     }
 
