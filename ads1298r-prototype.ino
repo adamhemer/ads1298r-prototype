@@ -73,6 +73,11 @@
 
 WiFiClient client;
 
+// CHnSET : Test Signal 0x_5, Shorted 0x_1, Normal 0x_0.
+// { 0x00, 0x00, 0b00000010, 0x05, 0x05, 0x05, 0x05, 0x05 }; // Respiration testing
+// { 0x05, 0x00, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05 }; // ECG on Channel 2, Others test signal.
+// { 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05 }; // All channels test signal.
+
 uint8_t channelConfig[] = { 0x05, 0x00, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05 }; // See datasheet for details on CHnSET
 
 ADS1298R ads1298r(channelConfig, SPI_BAUD, SPI_BIT_ORDER, SPI_MODE);
@@ -135,6 +140,7 @@ void setup()
 
     if (voltage < BAT_LOW) {
         Serial.print("Battery voltage too low! Shutting down...");
+        delay(1000);
         digitalWrite(REG_EN, LOW);                      // Shutdown voltage regulator
     }
 
@@ -151,10 +157,6 @@ void setup()
 
     // ======== ADS1298R setup ========
     Serial.println("Starting ADS1298R boot sequence...");
-    // CHnSET : Test Signal 0x_5, Shorted 0x_1, Normal 0x_0.
-    // uint8_t channelSettings[] = { 0x00, 0x00, 0b00000010, 0x05, 0x05, 0x05, 0x05, 0x05 }; // Respiration testing
-    // uint8_t channelSettings[] = { 0x05, 0x00, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05 }; // ECG on Channel 2, Others test signal.
-    uint8_t channelSettings[] = { 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05 }; // All channels test signal.
 
     digitalWrite(LED1, HIGH);
     ads1298r.init();
